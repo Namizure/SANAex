@@ -7,78 +7,80 @@
 #include "GUI/ScopeComponent.hpp"
 
 class PluginProcessor : public BaseAudioProcessor {
- public:
-  PluginProcessor ();
-  ~PluginProcessor ();
-  
-  AudioProcessorEditor* createEditor() override;
+public:
+	PluginProcessor();
+	~PluginProcessor();
 
-  // プリセット用関数
-  int getNumPrograms() override;
-  int getCurrentProgram() override;
-  void setCurrentProgram(int index) override;
-  const String getProgramName(int index) override;
+	AudioProcessorEditor* createEditor() override;
 
-  void prepareToPlay(double sampleRate, std::int32_t samplesPerBlock) override;
-  void processBlock(AudioBuffer<float>&, MidiBuffer&) override;
-  
-  void getStateInformation(MemoryBlock& destData) override;
-  void setStateInformation(const void* data, int sizeInBytes) override;
-  
-  MidiKeyboardState& getKeyboardState() { return keyboardState; }
-  AudioBufferQueue<float>& getAudioBufferQueue() { return scopeDataQueue; }
+	// プリセット用関数
+	int getNumPrograms() override;
+	int getCurrentProgram() override;
+	void setCurrentProgram(int index) override;
+	const String getProgramName(int index) override;
 
-  const StringArray SWEEP_SWITCH {"OFF", "Positive", "Negative"};
-  const StringArray VOICING_SWITCH {"POLY", "MONO", "PORTAMENTO"};
+	void prepareToPlay(double sampleRate, std::int32_t samplesPerBlock) override;
+	void processBlock(AudioBuffer<float>&, MidiBuffer&) override;
 
-  ChipOscillatorParameters chipOscParameters;
-  SweepParameters sweepParameters;
-  VibratoParameters vibratoParameters;
-  VoicingParameters voicingParameters;
-  OptionsParameters optionsParameters;
-  WaveformMemoryParameters waveformMemoryParameters;
-  MidiEchoParameters midiEchoParameters;
-  FilterParameters filterParameters;
-  PresetsParameters presetsParameters;
-  WavePatternParameters wavePatternParameters;
+	void getStateInformation(MemoryBlock& destData) override;
+	void setStateInformation(const void* data, int sizeInBytes) override;
 
- private:
-  void initProgram();
-  std::int32_t getNumVoices();
-  void addVoice();
-  void changeVoiceSize();
-  void clearBuffers(AudioBuffer<float>& buffer, AudioBuffer<float>& upSampleBuffer);
-  static float clippingFunction(float inputValue);
-  void initEffecters(dsp::ProcessSpec& spec);
-  void procMidiMessages(const AudioBuffer<float>& buffer, const MidiBuffer& midiMessages);
+	MidiKeyboardState& getKeyboardState() { return keyboardState; }
+	AudioBufferQueue<float>& getAudioBufferQueue() { return scopeDataQueue; }
 
-  Synthesiser synth;
+	const StringArray SWEEP_SWITCH{ "OFF", "Positive", "Negative" };
+	const StringArray VOICING_SWITCH{ "POLY", "MONO", "PORTAMENTO" };
 
-  // preset index
-  std::int32_t currentProgIndex;
+	ChipOscillatorParameters chipOscParameters;
+	SweepParameters sweepParameters;
+	VibratoParameters vibratoParameters;
+	VoicingParameters voicingParameters;
+	OptionsParameters optionsParameters;
+	WaveformMemoryParameters waveformMemoryParameters;
+	MidiEchoParameters midiEchoParameters;
+	FilterParameters filterParameters;
+	PresetsParameters presetsParameters;
+	WavePatternParameters wavePatternParameters;
+	ArpParameters arpParameters;
 
-  //アンチエイリアスフィルタ用
-  antiAliasFilter antiAliasFilter;
 
-  // DSPエフェクト，クリッパー，ドライブ，フィルタ
-  dsp::WaveShaper<float> clipper;
-  dsp::Gain<float> drive;
-  dsp::ProcessorDuplicator<dsp::IIR::Filter<float>,
-                           dsp::IIR::Coefficients<float>>
-      hicutFilter;
-  dsp::ProcessorDuplicator<dsp::IIR::Filter<float>,
-                           dsp::IIR::Coefficients<float>>
-      lowcutFilter;
+private:
+	void initProgram();
+	std::int32_t getNumVoices();
+	void addVoice();
+	void changeVoiceSize();
+	void clearBuffers(AudioBuffer<float>& buffer, AudioBuffer<float>& upSampleBuffer);
+	static float clippingFunction(float inputValue);
+	void initEffecters(dsp::ProcessSpec& spec);
+	void procMidiMessages(const AudioBuffer<float>& buffer, const MidiBuffer& midiMessages);
 
-  // GUI上のキーボードコンポーネントで生成されたMIDI情報を保持しておくオブジェクト.
-  // MIDIキーボードの状態を同期するためのステートオブジェクト
-  MidiKeyboardState keyboardState;
+	Synthesiser synth;
 
-  // スコープパネルに波形を表示するためのデータバッファ
-  AudioBufferQueue<float> scopeDataQueue;
-  ScopeDataCollector<float> scopeDataCollector;
+	// preset index
+	std::int32_t currentProgIndex;
 
-  MidiBuffer eventsToAdd;
-  
-  JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PluginProcessor )
+	//アンチエイリアスフィルタ用
+	antiAliasFilter antiAliasFilter;
+
+	// DSPエフェクト，クリッパー，ドライブ，フィルタ
+	dsp::WaveShaper<float> clipper;
+	dsp::Gain<float> drive;
+	dsp::ProcessorDuplicator<dsp::IIR::Filter<float>,
+		dsp::IIR::Coefficients<float>>
+		hicutFilter;
+	dsp::ProcessorDuplicator<dsp::IIR::Filter<float>,
+		dsp::IIR::Coefficients<float>>
+		lowcutFilter;
+
+	// GUI上のキーボードコンポーネントで生成されたMIDI情報を保持しておくオブジェクト.
+	// MIDIキーボードの状態を同期するためのステートオブジェクト
+	MidiKeyboardState keyboardState;
+
+	// スコープパネルに波形を表示するためのデータバッファ
+	AudioBufferQueue<float> scopeDataQueue;
+	ScopeDataCollector<float> scopeDataCollector;
+
+	MidiBuffer eventsToAdd;
+
+	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PluginProcessor)
 };
