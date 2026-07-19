@@ -404,10 +404,17 @@ OptionsParametersComponent::OptionsParametersComponent(
 )
 	: _optionsParamsPtr(optionsParams),
 	pitchStandardSlider("Tunes", "", _optionsParamsPtr->PitchStandard, this),
+<<<<<<< Updated upstream
 	pitchBendRangeSlider("PB Range", "", _optionsParamsPtr->PitchBendRange, this) //, IncButtonLook() 
 {
 
 	//pitchStandardSlider.setLookAndFeel(&IncButtonLook);
+=======
+	pitchBendRangeSlider("PB Range", "", _optionsParamsPtr->PitchBendRange, this), IncButtonLook()
+{
+
+	pitchStandardSlider.setLookAndFeel(&IncButtonLook);
+>>>>>>> Stashed changes
 	addAndMakeVisible(pitchStandardSlider);
 	addAndMakeVisible(pitchBendRangeSlider);
 >>>>>>> Stashed changes
@@ -778,6 +785,9 @@ void WavePatternsComponent::comboBoxChanged(ComboBox* comboBoxThatHasChanged) {
 
 
 
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
 void WavePatternsComponent::buttonClicked(Button* button) {
   if (button == &_enableSwitch.button) {

@@ -112,6 +112,7 @@ class VoicingParametersComponent : public BaseComponent,
 };
 
 
+<<<<<<< Updated upstream
 //class CustomIncDecButton : public juce::TextButton {
 //public:
 //	CustomIncDecButton(const String& name) : TextButton(name) {}
@@ -134,6 +135,30 @@ class VoicingParametersComponent : public BaseComponent,
 //
 //
 //};
+=======
+class CustomIncDecButton : public juce::TextButton {
+public:
+	CustomIncDecButton(const String& name) : TextButton(name) {}
+
+	void paintButton(Graphics& g, bool isMouseOver, bool isButtonDown) override {
+		auto bounds = getLocalBounds().toFloat();
+		g.setColour(isButtonDown ? juce::Colour(67, 85, 94) : Colour(40, 51, 56));
+		g.fillRect(bounds.getX(), bounds.getY() + 21.0f, bounds.getWidth(), 20.0f);
+		g.setColour(Colours::white);
+		g.drawRoundedRectangle(bounds.getX(), bounds.getY() + 21.0f, bounds.getWidth(), 20.0f, 2.0f, 0.5f);
+		g.drawText(getButtonText(), getLocalBounds(), Justification::centred);
+	}
+};
+
+class IncButtonLook : public LookAndFeel_V4 {
+public:
+	juce::Button* createSliderButton(Slider& s, bool isIncrement) {
+		return new CustomIncDecButton(isIncrement ? "+" : "-");
+	}
+
+
+};
+>>>>>>> Stashed changes
 
 
 class OptionsParametersComponent : public BaseComponent, Slider::Listener {
@@ -159,7 +184,11 @@ class OptionsParametersComponent : public BaseComponent, Slider::Listener {
 	TextSliderIncDec pitchBendRangeSlider;
 
 
+<<<<<<< Updated upstream
 	//IncButtonLook IncButtonLook;
+>>>>>>> Stashed changes
+=======
+	IncButtonLook IncButtonLook;
 >>>>>>> Stashed changes
 };
 
@@ -288,6 +317,7 @@ class WavePatternsComponent : public BaseComponent,
   "Pure_Saw",         "NES_LongNoise",   "NES_ShortNoise",
   "Pure_Lo-bitNoise", "Waveform Memory",
 =======
+
 
 	void refreshWaveformList() {
 		StringArray fullList;
