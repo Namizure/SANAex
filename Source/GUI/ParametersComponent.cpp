@@ -392,12 +392,25 @@ void VoicingParametersComponent::comboBoxChanged(
 }
 
 OptionsParametersComponent::OptionsParametersComponent(
+<<<<<<< Updated upstream
     OptionsParameters* optionsParams)
     : _optionsParamsPtr(optionsParams),
       pitchStandardSlider("Tunes", "", _optionsParamsPtr->PitchStandard, this),
       pitchBendRangeSlider("PB Range", "", _optionsParamsPtr->PitchBendRange, this) {
   addAndMakeVisible(pitchStandardSlider);
   addAndMakeVisible(pitchBendRangeSlider);
+=======
+	OptionsParameters* optionsParams
+)
+	: _optionsParamsPtr(optionsParams),
+	pitchStandardSlider("Tunes", "", _optionsParamsPtr->PitchStandard, this),
+	pitchBendRangeSlider("PB Range", "", _optionsParamsPtr->PitchBendRange, this) //, IncButtonLook() 
+{
+
+	//pitchStandardSlider.setLookAndFeel(&IncButtonLook);
+	addAndMakeVisible(pitchStandardSlider);
+	addAndMakeVisible(pitchBendRangeSlider);
+>>>>>>> Stashed changes
 }
 
 void OptionsParametersComponent::paint(Graphics& g) {
@@ -734,6 +747,7 @@ void WavePatternsComponent::timerCallback() {
 }
 
 void WavePatternsComponent::comboBoxChanged(ComboBox* comboBoxThatHasChanged) {
+<<<<<<< Updated upstream
   for (auto i = 0; i < WAVEPATTERN_TYPES; ++i) {
     if (comboBoxThatHasChanged == &_waveTypeSelectors[i].selector) {
       *_wavePatternParameters->WaveTypes[i] = _waveTypeSelectors[i].getSelectedItemIndex();
@@ -743,6 +757,28 @@ void WavePatternsComponent::comboBoxChanged(ComboBox* comboBoxThatHasChanged) {
   resized();
 }
 
+=======
+	for (auto i = 0; i < WAVEPATTERN_TYPES; ++i) {
+		if (comboBoxThatHasChanged == &_waveTypeSelectors[i]->selector) {
+			int selectedIndex = _waveTypeSelectors[i]->selector.getSelectedItemIndex();
+			*(_wavePatternParameters->WaveTypes[i]) = selectedIndex;
+			String selectedName = _waveTypeSelectors[i]->selector.getText();
+			*_chipOscParamsPtr->OscWaveType = selectedIndex;
+			if (onSwitchWaveform) {
+				onSwitchWaveform(selectedIndex);
+			}
+			DBG("WavePattern[" + String(i) + "]" + ", name: " + selectedName);
+			return;
+		}
+	}
+
+
+}
+
+
+
+
+>>>>>>> Stashed changes
 void WavePatternsComponent::buttonClicked(Button* button) {
   if (button == &_enableSwitch.button) {
     *_wavePatternParameters->PatternEnabled = _enableSwitch.getToggleState();

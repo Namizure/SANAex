@@ -111,6 +111,31 @@ class VoicingParametersComponent : public BaseComponent,
   TextSlider stepTimeSlider;
 };
 
+
+//class CustomIncDecButton : public juce::TextButton {
+//public:
+//	CustomIncDecButton(const String& name) : TextButton(name) {}
+//
+//	void paintButton(Graphics& g, bool isMouseOver, bool isButtonDown) override {
+//		auto bounds = getLocalBounds().toFloat();
+//		g.setColour(isButtonDown ? juce::Colour(67, 85, 94) : Colour(40, 51, 56));
+//		g.fillRect(bounds.getX(), bounds.getY() + 21.0f, bounds.getWidth(), 20.0f);
+//		g.setColour(Colours::white);
+//		g.drawRoundedRectangle(bounds.getX(), bounds.getY() + 21.0f, bounds.getWidth(), 20.0f, 2.0f, 0.5f);
+//		g.drawText(getButtonText(), getLocalBounds(), Justification::centred);
+//	}
+//};
+//
+//class IncButtonLook : public LookAndFeel_V4 {
+//public:
+//	juce::Button* createSliderButton(Slider& s, bool isIncrement) {
+//		return new CustomIncDecButton(isIncrement ? "+" : "-");
+//	}
+//
+//
+//};
+
+
 class OptionsParametersComponent : public BaseComponent, Slider::Listener {
  public:
   OptionsParametersComponent(OptionsParameters* optionsParams);
@@ -126,8 +151,16 @@ class OptionsParametersComponent : public BaseComponent, Slider::Listener {
 
   OptionsParameters* _optionsParamsPtr;
 
+<<<<<<< Updated upstream
   TextSliderIncDec pitchStandardSlider;
   TextSliderIncDec pitchBendRangeSlider;
+=======
+	TextSliderIncDec pitchStandardSlider;
+	TextSliderIncDec pitchBendRangeSlider;
+
+
+	//IncButtonLook IncButtonLook;
+>>>>>>> Stashed changes
 };
 
 class MidiEchoParametersComponent : public BaseComponent,
@@ -247,11 +280,83 @@ class WavePatternsComponent : public BaseComponent,
   TextSelector _waveTypeSelectors[4];
   PatternSliders _rangeSliders;
 
+<<<<<<< Updated upstream
   const StringArray OSC_WAVE_TYPES {
   "NES_Square50%",    "NES_Square25%",   "NES_Square12.5%",
   "NES_Triangle",     "Pure_Square50%",  "Pure_Square25%",
   "Pure_Square12.5%", "Pure_Triangle",   "Pure_Sine",
   "Pure_Saw",         "NES_LongNoise",   "NES_ShortNoise",
   "Pure_Lo-bitNoise", "Waveform Memory",
+=======
+
+	void refreshWaveformList() {
+		StringArray fullList;
+		fullList.add("NES_Square50%");
+		fullList.add("NES_Square25%");
+		fullList.add("NES_Square12.5%");
+		fullList.add("NES_Triangle");
+		fullList.add("Pure_Square50%");
+		fullList.add("Pure_Square25%");
+		fullList.add("Pure_Square12.5%");
+		fullList.add("Pure_Triangle");
+		fullList.add("Pure_Sine");
+		fullList.add("Pure_Saw");
+		fullList.add("NES_LongNoise");
+		fullList.add("NES_ShortNoise");
+		fullList.add("Pure_Noise");
+		fullList.add("Rough_Sine");
+		fullList.add("Rough_Saw");
+		fullList.add("Rough_Noise");
+
+		// add custom waveforms based on current count
+		for (int w = 1; w <= _waveformMemoryParamsPtr->getNumWaveforms(); ++w) {
+			if (w == 1) {
+				fullList.add("Waveform Memory");
+			}
+			else {
+				fullList.add("Waveform " + String(w));
+			}
+		}
+
+		// update all selectors
+		for (int i = 0; i < WAVEPATTERN_TYPES; ++i) {
+			_waveTypeSelectors[i]->selector.clear(dontSendNotification);
+			_waveTypeSelectors[i]->selector.addItemList(fullList, 1);
+			_waveTypeSelectors[i]->setSelectedItemIndex(_wavePatternParameters->WaveTypes[i]->get());
+		}
+
+		_wavePatternParameters->storedWaveformNames = fullList;
+	}
+
+private:
+	ChipOscillatorParameters* _chipOscParamsPtr;
+	WaveformMemoryParameters* _waveformMemoryParamsPtr;
+	virtual void timerCallback() override;
+	virtual void comboBoxChanged(ComboBox* comboBoxThatHasChanged) override;
+	virtual void buttonClicked(Button* button) override;
+	virtual void sliderValueChanged(Slider* slider) override;
+
+	WavePatternParameters* _wavePatternParameters;
+	SwitchButton _enableSwitch;
+	SwitchButton _loopSwitch;
+	TextSlider _stepTimeSlider;
+	TextSelector* _waveTypeSelectors[WAVEPATTERN_TYPES];
+	PatternSliders _rangeSliders;
+
+	const StringArray OSC_WAVE_TYPES{
+	  "NES_Square50%",    "NES_Square25%",   "NES_Square12.5%",
+	  "NES_Triangle",     "Pure_Square50%",  "Pure_Square25%",
+	  "Pure_Square12.5%", "Pure_Triangle",   "Pure_Sine",
+	  "Pure_Saw",         "NES_LongNoise",   "NES_ShortNoise",
+	  "Pure_Noise",       "Rough_Sine",      "Rough_Saw",
+	  "Rough_Noise",      "Waveform Memory", "Waveform 2",
+	  "Waveform 3",       "Waveform 4",      "Waveform 5",
+	  "Waveform 6",       "Waveform 7",      "Waveform 8",
+	  "Waveform 9",       "Waveform 10",     "Waveform 11",
+	  "Waveform 12",      "Waveform 13",     "Waveform 14",
+	  "Waveform 15",      "Waveform 16",     "Waveform 17",
+	  "Waveform 18",      "Waveform 19",     "Waveform 20"
+	};
+>>>>>>> Stashed changes
 };
 };
