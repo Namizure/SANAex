@@ -124,6 +124,43 @@ private:
 	TextSliderIncDec();
 };
 
+// new dropdown menu, needs improvement, copies across the entire UI so it breaks all of the dropdowns
+// need to set up bold fonts and also the font for this one.
+class CustomComboBoxLookAndFeel : public juce::LookAndFeel_V4 {
+public:
+	CustomComboBoxLookAndFeel() {
+		setColour(juce::ComboBox::backgroundColourId, juce::Colour(0.0f, 0.0f, 0.0f, 0.0f));
+		setColour(juce::ComboBox::textColourId, juce::Colour(32, 33, 40));
+		setColour(juce::ComboBox::outlineColourId, juce::Colour(32, 33, 40));
+		setColour(juce::ComboBox::arrowColourId, juce::Colour(32, 33, 40));
+	}
+
+
+	void drawComboBox(juce::Graphics& g, int width, int height, bool isButtonDown, int buttonX, int buttonY, int buttonW, int buttonH, juce::ComboBox& box) override {
+		juce::Rectangle<int> boxBounds(0, 0, width, height);
+
+		g.setColour(box.findColour(juce::ComboBox::backgroundColourId));
+		g.fillRoundedRectangle(boxBounds.toFloat(), 0.0f);
+		g.setColour(box.findColour(juce::ComboBox::outlineColourId));
+		g.drawRoundedRectangle(boxBounds.toFloat().reduced(0.5f, 0.5f), 0.0f, 2.0f);
+
+		juce::Path path;
+		auto x = (float)buttonX + (float)buttonW * 0.3f;
+		auto y = (float)buttonY + (float)buttonH * 0.45f;
+		auto w = (float)buttonW * 0.4f;
+		auto h = (float)buttonH * 0.2f;
+
+		path.startNewSubPath(x, y);
+		path.lineTo(x + w / 2.0f, y + h);
+		path.lineTo(x + w, y);
+		path.closeSubPath();
+
+		g.setColour(box.findColour(juce::ComboBox::arrowColourId).withAlpha((box.isEnabled() ? 1.0f : 0.2f)));
+		g.fillPath(path);
+		g.strokePath(path, juce::PathStrokeType(2.0f));
+	}
+};
+
 class TextSelector : public Component {
 public:
 	int LOCAL_MARGIN = 2;
@@ -132,13 +169,21 @@ public:
 	ComboBox selector;
 	Label label;
 
+	CustomComboBoxLookAndFeel customComboLnF;
+
 	TextSelector(std::string labelName, AudioParameterChoice* paramList, ComboBox::Listener* listener)
 		: selector(labelName) {
+
+		selector.setLookAndFeel(&customComboLnF);
+
 		selector.addItemList(paramList->getAllValueStrings(), 1);
 		selector.setSelectedItemIndex(paramList->getIndex(), dontSendNotification);
 		selector.setJustificationType(Justification::centred);
 		selector.addListener(listener);
 		addAndMakeVisible(selector);
+
+		label.setFont(ProjectFonts::headerFont(28.f));
+		label.setColour(juce::Label::textColourId, juce::Colour(32, 33, 40));
 
 		label.setText(labelName, dontSendNotification);
 		label.setJustificationType(Justification::centred);
@@ -155,16 +200,22 @@ public:
 		selector.addListener(listener);
 		addAndMakeVisible(selector);
 
+		label.setFont(ProjectFonts::headerFont(24.f));
+
 		label.setText(labelName, dontSendNotification);
 		label.setJustificationType(Justification::centred);
 		label.setEditable(false, false, false);
 		addAndMakeVisible(label);
 	};
 
+	~TextSelector() override {
+		selector.setLookAndFeel(nullptr);
+	}
+
 	virtual void resized() override {
 		Rectangle<int> bounds = getLocalBounds();
 		label.setBounds(bounds.removeFromLeft(LABEL_WIDTH).reduced(LOCAL_MARGIN));
-		selector.setBounds(bounds.reduced(LOCAL_MARGIN * 2));
+		selector.setBounds(bounds.reduced(LOCAL_MARGIN * 2).withWidth(150).withHeight(40).withY(0));
 	};
 
 	virtual void addListener(ComboBox::Listener* listener) {

@@ -104,7 +104,7 @@ EditorGUI::EditorGUI(PluginProcessor& p)
 			customLookAndFeel->setColour(TextButton::ColourIds::textColourOffId, Colour(201, 213, 219));
 			customLookAndFeel->setColour(TextButton::ColourIds::textColourOnId, Colour(201, 213, 219));
 
-			customLookAndFeel->setColour(Slider::ColourIds::trackColourId, Colour(253, 167, 63));
+			customLookAndFeel->setColour(Slider::ColourIds::trackColourId, Colour(200, 48, 48));
 			customLookAndFeel->setColour(Slider::ColourIds::thumbColourId, Colour(137, 140, 149));
 			customLookAndFeel->setColour(Slider::ColourIds::backgroundColourId, Colour(104, 112, 117));
 			customLookAndFeel->setColour(Slider::ColourIds::textBoxBackgroundColourId, Colour(45, 52, 57));
@@ -230,15 +230,20 @@ void EditorGUI::resized() {
 		EffectButton.setBounds(area.removeFromLeft(80));
 	}
 
-	// Oscillator Page
+	// Oscillator Page (WAVE)
 	if (OscButton.button.getToggleState() == true) {
 		Rectangle<int> mainbounds = bounds;
 		{
-			Rectangle<int> leftArea =
-				mainbounds.removeFromLeft(bounds.getWidth() * 0.45f);
-			chipOscComponent.setBounds(
-				leftArea.removeFromTop(leftArea.getHeight() * 0.6f).reduced(PANEL_MARGIN));
-			scopeComponent.setBounds(leftArea.reduced(PANEL_MARGIN));
+			Rectangle<int> leftArea = mainbounds.removeFromLeft(bounds.getWidth() * 0.45f);
+			auto fullLeftPanelArea = leftArea.reduced(PANEL_MARGIN);
+			chipOscComponent.setBounds(fullLeftPanelArea);
+			int scopeHeight = 220;
+			auto scopeArea = fullLeftPanelArea.removeFromBottom(scopeHeight).reduced(30, 30);
+			scopeComponent.setBounds(scopeArea.translated(2.5, 5));
+			scopeComponent.toFront(false);
+
+
+
 		}
 		{
 			Rectangle<int> rightArea = mainbounds;
@@ -292,12 +297,22 @@ void EditorGUI::resized() {
 	if (ArpButton.button.getToggleState() == true)
 	{
 		Rectangle<int> mainbounds = bounds;
-		Rectangle<int> leftArea = mainbounds.removeFromLeft(bounds.getWidth() * 0.5f);
-		chipOscComponent.setBounds(leftArea.reduced(PANEL_MARGIN));
-		int seqHeight = mainbounds.getHeight() * 1.f;
-		Rectangle<int> rightTopArea = mainbounds.removeFromTop(seqHeight);
-		//scopeComponent.setBounds(mainbounds.reduced(PANEL_MARGIN));
-		arpSequencer.setBounds(rightTopArea.reduced(PANEL_MARGIN));
+		{
+			Rectangle<int> leftArea = mainbounds.removeFromLeft(bounds.getWidth() * 0.45f);
+			auto fullLeftPanelArea = leftArea.reduced(PANEL_MARGIN);
+			chipOscComponent.setBounds(fullLeftPanelArea);
+			int scopeHeight = 220;
+			auto scopeArea = fullLeftPanelArea.removeFromBottom(scopeHeight).reduced(30, 30);
+			scopeComponent.setBounds(scopeArea.translated(2.5, 5));
+			scopeComponent.toFront(false);
+
+		}
+		{
+			Rectangle<int> rightArea = mainbounds;
+			arpSequencer.setBounds(
+				rightArea.reduced(PANEL_MARGIN)
+			);
+		}
 	}
 
 }
@@ -356,8 +371,9 @@ void EditorGUI::buttonClicked(Button* button) {
 		arpSequencer.setVisible(true);
 		waveformMemoryParamsComponent.setVisible(false);
 		chipOscComponent.setVisible(true);
-		//scopeComponent.setVisible(true);
+		scopeComponent.setVisible(true);
 		ArpButton.setToggleState(true);
 	}
 	resized();
 }
+

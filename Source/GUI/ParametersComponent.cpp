@@ -52,18 +52,26 @@ static std::vector<std::string> split(std::string str, char del) {
 
 static void paintHeader(Graphics& g, Rectangle<int> bounds, std::string text) {
 	{ // 枠の描画
-		auto x = 0.0f,
+		auto x = 10.0f,
 			y = HEADER_HEIGHT - 2;
-		auto width = (float)bounds.getWidth(),
-			height = (float)bounds.getHeight() - y;
-		auto cornerSize = 9.0f,
-			thickness = 0.0f;
-		g.setColour(Colour(36, 40, 43));
-		g.fillRoundedRectangle(x, y, width, height, cornerSize);
-		g.setColour(Colour(22, 25, 30));
-		g.drawRoundedRectangle(x, y, width, height, cornerSize, thickness);
+		auto width = (float)bounds.getWidth() - 15;
+		auto height = (float)bounds.getHeight() - y;
 
+		auto thickness = 16.0f;
+		auto outerCornerSize = 8.0f;
+		auto innerCornerSize = 10.0f;
 
+		// outside
+		g.setColour(Colour(147, 145, 150));
+		g.fillRoundedRectangle(x, y, width, height, outerCornerSize);
+
+		// inside
+		g.setColour(Colour(32, 33, 40));
+		g.fillRoundedRectangle(x + thickness - 4,
+			y + thickness + 20,
+			width - (thickness * 1.5f),
+			height - (thickness * 3.2f),
+			innerCornerSize);
 	}
 
 	{ // ヘッダー描画
@@ -198,12 +206,12 @@ static void loadWaveFile(WaveformMemoryParameters* _waveformMemoryParamsPtr,
 ChipOscillatorComponent::ChipOscillatorComponent(ChipOscillatorParameters* oscParams, WaveformMemoryParameters* waveformMemoryParams)
 	: _oscParamsPtr(oscParams),
 	_waveformMemoryParamsPtr(waveformMemoryParams),
-	waveTypeSelector("Waves", _oscParamsPtr->OscWaveType, this),
-	volumeLevelSlider("Volume", "dB", _oscParamsPtr->VolumeLevel, this, 0.01f),
-	attackSlider("Attack", "sec", _oscParamsPtr->Attack, this, MIN_DELTA, 1.0f),
-	decaySlider("Decay", "sec", _oscParamsPtr->Decay, this, MIN_DELTA, 1.0f),
-	sustainSlider("Sustain", "", _oscParamsPtr->Sustain, this, MIN_DELTA),
-	releaseSlider("Release", "sec", _oscParamsPtr->Release, this, MIN_DELTA, 1.0f) {
+	waveTypeSelector("WAVES", _oscParamsPtr->OscWaveType, this),
+	volumeLevelSlider("VOL", "dB", _oscParamsPtr->VolumeLevel, this, 0.01f),
+	attackSlider("ATT", "sec", _oscParamsPtr->Attack, this, MIN_DELTA, 1.0f),
+	decaySlider("DEC", "sec", _oscParamsPtr->Decay, this, MIN_DELTA, 1.0f),
+	sustainSlider("SUST", "", _oscParamsPtr->Sustain, this, MIN_DELTA),
+	releaseSlider("REL", "sec", _oscParamsPtr->Release, this, MIN_DELTA, 1.0f) {
 	//colorTypeSelector("Arp", _oscParamsPtr->ColorType, this),
 	//colorDurationSlider("Duration", "sec", _oscParamsPtr->ColorDuration, this, MIN_DELTA, 0.2f) 
 
@@ -222,22 +230,46 @@ ChipOscillatorComponent::ChipOscillatorComponent(ChipOscillatorParameters* oscPa
 }
 
 void ChipOscillatorComponent::paint(Graphics& g) {
-	paintHeader(g, getLocalBounds(), "Waves");
+	paintHeader(g, getLocalBounds(), "");
+
+
+
 }
 
 void ChipOscillatorComponent::resized() {
-	float rowSize = 6.0f;
-	auto compHeight = ((getHeight() - HEADER_HEIGHT) / rowSize);
+	//float rowSize = 8.0f;
+	//auto compHeight = ((getHeight() - HEADER_HEIGHT) / rowSize);
 
-	Rectangle<int> bounds = getLocalBounds();  // コンポーネント基準の値
-	bounds.removeFromTop(HEADER_HEIGHT);
+	//Rectangle<int> bounds = getLocalBounds();  // コンポーネント基準の値
+	//bounds.removeFromTop(HEADER_HEIGHT);
 
-	waveTypeSelector.setBounds(bounds.removeFromTop(compHeight));
+	//waveTypeSelector.setBounds(bounds.removeFromTop(HEADER_HEIGHT));
+	//compHeight / 2;
+	//volumeLevelSlider.setBounds(bounds.removeFromTop(compHeight));
+	//attackSlider.setBounds(bounds.removeFromTop(compHeight));
+	//decaySlider.setBounds(bounds.removeFromTop(compHeight));
+	//sustainSlider.setBounds(bounds.removeFromTop(compHeight));
+	//releaseSlider.setBounds(bounds.removeFromTop(compHeight));
+
+
+	auto bounds = getLocalBounds();
+
+	auto headerArea = bounds.removeFromTop(HEADER_HEIGHT + 35);
+	waveTypeSelector.setBounds(headerArea.withTrimmedTop(20).withTrimmedLeft(24));
+
+	int margin = 20;
+	bounds.reduce(margin, margin);
+
+	float rowSize = 10.0f;
+	auto compHeight = bounds.getHeight() / rowSize;
+
 	volumeLevelSlider.setBounds(bounds.removeFromTop(compHeight));
 	attackSlider.setBounds(bounds.removeFromTop(compHeight));
 	decaySlider.setBounds(bounds.removeFromTop(compHeight));
 	sustainSlider.setBounds(bounds.removeFromTop(compHeight));
 	releaseSlider.setBounds(bounds.removeFromTop(compHeight));
+
+
 	/*{
 	  auto area = bounds.removeFromTop(compHeight);
 	  auto width = area.getWidth() / 2.0f;

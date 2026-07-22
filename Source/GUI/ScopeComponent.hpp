@@ -213,11 +213,14 @@ public:
 				y = HEADER_HEIGHT - 2;
 			auto width = (float)bounds.getWidth(),
 				height = (float)bounds.getHeight() - y;
-			auto cornerSize = 9.0f, thickness = 0.0f;
-			g.setColour(Colour(50, 56, 60));
+			auto cornerSize = 0.0f,
+				thickness = 1.0f;
+
+			g.setColour(Colour(19, 19, 19));
 			g.fillRoundedRectangle(x, y, width, height, cornerSize);
-			g.setColour(Colour(22, 25, 30));
+			g.setColour(Colour(255, 255, 255)); //(22, 25, 30)
 			g.drawRoundedRectangle(x, y, width, height, cornerSize, thickness);
+
 
 
 		}
@@ -238,7 +241,7 @@ public:
 
 	// ④SCOPEパネルの状態を描画する関数。パネルの領域を塗りつぶす処理と波形をプロットする処理を実行する。
 	void paint(Graphics& g) override {
-		paintHeader(g, getLocalBounds(), "SCOPE");
+		paintHeader(g, getLocalBounds(), "");
 
 		// 波形を描画する矩形領域を特定する
 		Rectangle<int> drawArea = getLocalBounds();
