@@ -61,17 +61,77 @@ static void paintHeader(Graphics& g, Rectangle<int> bounds, std::string text) {
 		auto outerCornerSize = 8.0f;
 		auto innerCornerSize = 10.0f;
 
+
+		// shgadow
+		juce::Path outerpath;
+		outerpath.addRoundedRectangle(x, y, width, height, outerCornerSize);
+		juce::DropShadow shadow(juce::Colours::black.withAlpha(0.7f), 18, juce::Point<int>(0, 0)); //black.withAlpha(0.7f)
+		shadow.drawForPath(g, outerpath);
+
+		g.setColour(juce::Colour(147, 145, 150).withAlpha(0.0f));
+		g.fillPath(outerpath);
+
+
+
 		// outside
 		g.setColour(Colour(147, 145, 150));
 		g.fillRoundedRectangle(x, y, width, height, outerCornerSize);
 
+
+		// start of "bevel" effect 
+		auto highlightCol = juce::Colour(206, 203, 210);
+		auto transparentCol = highlightCol.withAlpha(0.0f);
+
+		float fade = 20.0f;
+
+		// left edge
+		juce::Path leftEdge;
+		leftEdge.startNewSubPath(x + 1, y + height - outerCornerSize);
+		leftEdge.lineTo(x + 1, y + outerCornerSize + 1);
+
+		juce::ColourGradient leftGrad(
+			transparentCol, x + 1, y + height - outerCornerSize,
+			highlightCol, x + 1, y + height - outerCornerSize - fade,
+			false);
+
+		g.setGradientFill(leftGrad);
+		g.strokePath(leftEdge, juce::PathStrokeType(1.f));
+
+
+		// left arc corner
+		juce::Path corner;
+		corner.addArc(x + 1, y + 1, outerCornerSize * 2.0f, outerCornerSize * 2.0f,
+			-juce::MathConstants<float>::halfPi, 0.0f, true);
+		g.setColour(highlightCol);
+		g.strokePath(corner, juce::PathStrokeType(1.f));
+
+
+		// top edge
+		juce::Path topEdge;
+		topEdge.startNewSubPath(x + outerCornerSize + 1, y + 1);
+		topEdge.lineTo(x + width - outerCornerSize, y + 1);
+
+		juce::ColourGradient topGrad(
+			highlightCol, x + width - outerCornerSize - fade, y + 1,
+			transparentCol, x + width - outerCornerSize, y + 1,
+			false);
+
+		g.setGradientFill(topGrad);
+		g.strokePath(topEdge, juce::PathStrokeType(1.5f));
+
+		// end of bevel 
+
 		// inside
 		g.setColour(Colour(32, 33, 40));
 		g.fillRoundedRectangle(x + thickness - 4,
-			y + thickness + 20,
+			y + thickness + 15,
 			width - (thickness * 1.5f),
-			height - (thickness * 3.2f),
+			height - (thickness * 2.7f),
 			innerCornerSize);
+
+
+
+
 	}
 
 	{ // ヘッダー描画

@@ -104,11 +104,11 @@ EditorGUI::EditorGUI(PluginProcessor& p)
 			customLookAndFeel->setColour(TextButton::ColourIds::textColourOffId, Colour(201, 213, 219));
 			customLookAndFeel->setColour(TextButton::ColourIds::textColourOnId, Colour(201, 213, 219));
 
-			customLookAndFeel->setColour(Slider::ColourIds::trackColourId, Colour(200, 48, 48));
-			customLookAndFeel->setColour(Slider::ColourIds::thumbColourId, Colour(137, 140, 149));
-			customLookAndFeel->setColour(Slider::ColourIds::backgroundColourId, Colour(104, 112, 117));
-			customLookAndFeel->setColour(Slider::ColourIds::textBoxBackgroundColourId, Colour(45, 52, 57));
-			customLookAndFeel->setColour(Slider::ColourIds::textBoxTextColourId, Colour(201, 213, 219));
+			//customLookAndFeel->setColour(Slider::ColourIds::trackColourId, Colour(200, 48, 48));
+			//customLookAndFeel->setColour(Slider::ColourIds::thumbColourId, Colour(137, 140, 149));
+			//customLookAndFeel->setColour(Slider::ColourIds::backgroundColourId, Colour(255, 255, 255));
+			//customLookAndFeel->setColour(Slider::ColourIds::textBoxBackgroundColourId, Colour(45, 52, 57));
+			//customLookAndFeel->setColour(Slider::ColourIds::textBoxTextColourId, Colour(201, 213, 219));
 
 			customLookAndFeel->setColour(ToggleButton::ColourIds::textColourId, Colour(201, 213, 219));
 			customLookAndFeel->setColour(ToggleButton::ColourIds::tickColourId, Colour(201, 213, 219));

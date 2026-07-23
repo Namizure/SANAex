@@ -38,6 +38,62 @@ struct Trail {
 	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(Trail)
 };
 
+
+class CustomSliderLookAndFeel : public juce::LookAndFeel_V4 {
+public:
+	CustomSliderLookAndFeel() {
+		setColour(juce::Slider::backgroundColourId, juce::Colour(255, 255, 255));
+		setColour(juce::Slider::thumbColourId, juce::Colours::white);
+		setColour(juce::Slider::textBoxTextColourId, juce::Colours::white);
+		setColour(juce::Slider::trackColourId, juce::Colour(200, 48, 48));
+	}
+
+	void drawLinearSlider(juce::Graphics& g, int x, int y, int width, int height,
+		float sliderPos, float minSliderPos, float maxSliderPos,
+		const juce::Slider::SliderStyle style, juce::Slider& slider) override {
+
+		// slider
+		float trackHeight = 4.0f;
+		float trackRadius = trackHeight / 2.0f;
+		float trackY = (float)y + ((float)height - trackHeight) / 2.0f;
+
+		// white part
+		g.setColour(slider.findColour(juce::Slider::backgroundColourId));
+		g.fillRoundedRectangle((float)x, trackY, (float)width, trackHeight, trackRadius);
+
+		// red part
+		g.setColour(slider.findColour(juce::Slider::trackColourId));
+		g.fillRoundedRectangle((float)x, trackY, sliderPos - (float)x, trackHeight, trackRadius);
+
+
+		// thumb (circle in the middle)(
+		float thumbWidth = 9.0f;
+		float thumbHeight = 16.0f;
+
+		juce::Rectangle<float> thumbRect(sliderPos - (thumbWidth / 2.0f),
+			(float)y + ((float)height - thumbHeight) / 2.0f,
+			thumbWidth, thumbHeight);
+
+		float cornerSize = 2.f;
+
+		g.setColour(juce::Colours::white);
+		g.fillRoundedRectangle(thumbRect, cornerSize);
+
+		g.setColour(juce::Colour(20, 20, 24));
+		g.fillRoundedRectangle(thumbRect.reduced(1.5f), cornerSize - 1.0f);
+
+		g.setColour(juce::Colours::white);
+		float lineWidth = 1.5f;
+
+		g.fillRoundedRectangle(thumbRect.getCentreX() - (lineWidth / 2.0f),
+			thumbRect.getY() + 4.0f,
+			lineWidth,
+			thumbRect.getHeight() - 8.0f,
+			0.5f);
+	}
+};
+
+
 class TextSlider : public Component {
 public:
 	int LOCAL_MARGIN = 2;
@@ -46,11 +102,18 @@ public:
 	Slider slider;
 	Label label;
 
+	CustomSliderLookAndFeel CustomSliderLookAndFeel;
+
 	TextSlider(std::string labelName, std::string unit, float value, float start,
 		float end, Slider::Listener* listener, float degree = 0.1f,
 		float pivot = NULL)
 		: slider(Slider::SliderStyle::LinearHorizontal,
 			Slider::TextEntryBoxPosition::TextBoxLeft) {
+
+
+		slider.setLookAndFeel(&CustomSliderLookAndFeel);
+
+
 		slider.setRange(start, end, degree);
 		slider.setValue(value, dontSendNotification);
 		slider.setTextValueSuffix(std::string(" ") + unit);
@@ -84,6 +147,12 @@ public:
 		slider.setAlpha(alpha);
 		label.setAlpha(alpha);
 	};
+
+	virtual void paint(Graphics& g) {
+
+	}
+
+
 
 	virtual void resized() override {
 		Rectangle<int> bounds = getLocalBounds();
@@ -124,20 +193,27 @@ private:
 	TextSliderIncDec();
 };
 
-// new dropdown menu, needs improvement, copies across the entire UI so it breaks all of the dropdowns
-// need to set up bold fonts and also the font for this one.
 class CustomComboBoxLookAndFeel : public juce::LookAndFeel_V4 {
 public:
 	CustomComboBoxLookAndFeel() {
 		setColour(juce::ComboBox::backgroundColourId, juce::Colour(0.0f, 0.0f, 0.0f, 0.0f));
 		setColour(juce::ComboBox::textColourId, juce::Colour(32, 33, 40));
-		setColour(juce::ComboBox::outlineColourId, juce::Colour(32, 33, 40));
+		setColour(juce::ComboBox::outlineColourId, juce::Colours::transparentBlack.withAlpha(0.0f)); //32, 33, 40, 0.0f
 		setColour(juce::ComboBox::arrowColourId, juce::Colour(32, 33, 40));
 	}
 
+	juce::Font getComboBoxFont(juce::ComboBox& box) override {
+		return juce::Font(ProjectFonts::semiboldFont(24.f));
+
+	}
+
+	void labelposition(juce::ComboBox& box, juce::Label& label) {
+		label.setJustificationType(juce::Justification::centred);
+	}
 
 	void drawComboBox(juce::Graphics& g, int width, int height, bool isButtonDown, int buttonX, int buttonY, int buttonW, int buttonH, juce::ComboBox& box) override {
 		juce::Rectangle<int> boxBounds(0, 0, width, height);
+
 
 		g.setColour(box.findColour(juce::ComboBox::backgroundColourId));
 		g.fillRoundedRectangle(boxBounds.toFloat(), 0.0f);
@@ -145,9 +221,9 @@ public:
 		g.drawRoundedRectangle(boxBounds.toFloat().reduced(0.5f, 0.5f), 0.0f, 2.0f);
 
 		juce::Path path;
-		auto x = (float)buttonX + (float)buttonW * 0.3f;
+		auto x = (float)buttonX + (float)buttonW * 0.3f - 12;
 		auto y = (float)buttonY + (float)buttonH * 0.45f;
-		auto w = (float)buttonW * 0.4f;
+		auto w = (float)buttonW * 0.5f;
 		auto h = (float)buttonH * 0.2f;
 
 		path.startNewSubPath(x, y);
@@ -157,7 +233,7 @@ public:
 
 		g.setColour(box.findColour(juce::ComboBox::arrowColourId).withAlpha((box.isEnabled() ? 1.0f : 0.2f)));
 		g.fillPath(path);
-		g.strokePath(path, juce::PathStrokeType(2.0f));
+		g.strokePath(path, juce::PathStrokeType(1.0f));
 	}
 };
 
@@ -182,7 +258,7 @@ public:
 		selector.addListener(listener);
 		addAndMakeVisible(selector);
 
-		label.setFont(ProjectFonts::headerFont(28.f));
+		label.setFont(ProjectFonts::semiboldFont(32.f));
 		label.setColour(juce::Label::textColourId, juce::Colour(32, 33, 40));
 
 		label.setText(labelName, dontSendNotification);
@@ -200,7 +276,7 @@ public:
 		selector.addListener(listener);
 		addAndMakeVisible(selector);
 
-		label.setFont(ProjectFonts::headerFont(24.f));
+		label.setFont(ProjectFonts::boldFont(24.f));
 
 		label.setText(labelName, dontSendNotification);
 		label.setJustificationType(Justification::centred);
@@ -212,11 +288,38 @@ public:
 		selector.setLookAndFeel(nullptr);
 	}
 
+
 	virtual void resized() override {
 		Rectangle<int> bounds = getLocalBounds();
-		label.setBounds(bounds.removeFromLeft(LABEL_WIDTH).reduced(LOCAL_MARGIN));
-		selector.setBounds(bounds.reduced(LOCAL_MARGIN * 2).withWidth(150).withHeight(40).withY(0));
+		label.setBounds(bounds.removeFromLeft(LABEL_WIDTH + 15).reduced(LOCAL_MARGIN).withY(-1));
+		selector.setBounds(bounds.reduced(LOCAL_MARGIN * 2).withWidth(170).withHeight(35).withY(0));
+
 	};
+
+
+	virtual void paint(Graphics& g) {
+		int x = selector.getX();
+		int y = selector.getY();
+		int height = selector.getHeight();
+		int width = selector.getWidth();
+
+		// highlight
+		auto highlightCol = juce::Colour(177, 174, 180);
+		auto shadowCol = juce::Colour(99, 97, 102);
+		g.setColour(highlightCol);
+		g.fillRect(x + 1, y + 4, 1, height - 6);
+		g.fillRect(x + width - 1, y + 4, 1, height - 6);
+
+		// outline
+		g.setColour(Colour(15, 19, 21));
+		g.fillRect(x, y + 2, 1, height - 4);
+		g.fillRect(x + width - 2, y + 2, 1, height - 4);
+
+		// shadow
+		g.setColour(shadowCol);
+		g.fillRect(x - 1, y + 2, 1, height - 4);
+		g.fillRect(x + width - 3, y + 2, 1, height - 4);
+	}
 
 	virtual void addListener(ComboBox::Listener* listener) {
 		selector.addListener(listener);
