@@ -237,12 +237,10 @@ void EditorGUI::resized() {
 			Rectangle<int> leftArea = mainbounds.removeFromLeft(bounds.getWidth() * 0.45f);
 			auto fullLeftPanelArea = leftArea.reduced(PANEL_MARGIN);
 			chipOscComponent.setBounds(fullLeftPanelArea);
-			int scopeHeight = 220;
+			int scopeHeight = 245;
 			auto scopeArea = fullLeftPanelArea.removeFromBottom(scopeHeight).reduced(30, 30);
 			scopeComponent.setBounds(scopeArea.translated(2.5, 5));
 			scopeComponent.toFront(false);
-
-
 
 		}
 		{
@@ -301,7 +299,7 @@ void EditorGUI::resized() {
 			Rectangle<int> leftArea = mainbounds.removeFromLeft(bounds.getWidth() * 0.45f);
 			auto fullLeftPanelArea = leftArea.reduced(PANEL_MARGIN);
 			chipOscComponent.setBounds(fullLeftPanelArea);
-			int scopeHeight = 220;
+			int scopeHeight = 245;
 			auto scopeArea = fullLeftPanelArea.removeFromBottom(scopeHeight).reduced(30, 30);
 			scopeComponent.setBounds(scopeArea.translated(2.5, 5));
 			scopeComponent.toFront(false);

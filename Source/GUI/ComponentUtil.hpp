@@ -48,12 +48,33 @@ public:
 		setColour(juce::Slider::trackColourId, juce::Colour(200, 48, 48));
 	}
 
+	void drawLabel(juce::Graphics& g, juce::Label& label) override {
+		auto bounds = label.getLocalBounds().toFloat();
+		// background
+		g.setColour(Colour(19, 19, 19));
+		g.fillRoundedRectangle(bounds, 10.f);
+		// outline
+		g.setColour(juce::Colours::white);
+		g.drawRoundedRectangle(bounds.reduced(1.5f / 2.0f), 10.f, 1.f);
+		//text
+		g.setColour(juce::Colours::white);
+		g.setFont(ProjectFonts::semiboldFont(18));
+		g.setOpacity(label.isEnabled() ? 1.0f : 0.5f);
+
+		g.drawFittedText(label.getText(),
+			label.getLocalBounds().reduced(6, 2),
+			label.getJustificationType(),
+			juce::jmax(1, (int)((float)label.getHeight() / g.getCurrentFont().getHeight())),
+			label.getMinimumHorizontalScale());
+	}
+
+
 	void drawLinearSlider(juce::Graphics& g, int x, int y, int width, int height,
 		float sliderPos, float minSliderPos, float maxSliderPos,
 		const juce::Slider::SliderStyle style, juce::Slider& slider) override {
 
 		// slider
-		float trackHeight = 4.0f;
+		float trackHeight = 6.0f;
 		float trackRadius = trackHeight / 2.0f;
 		float trackY = (float)y + ((float)height - trackHeight) / 2.0f;
 
@@ -72,18 +93,22 @@ public:
 
 		juce::Rectangle<float> thumbRect(sliderPos - (thumbWidth / 2.0f),
 			(float)y + ((float)height - thumbHeight) / 2.0f,
-			thumbWidth, thumbHeight);
+			thumbWidth / 1.15, thumbHeight);
 
 		float cornerSize = 2.f;
 
+		// around
 		g.setColour(juce::Colours::white);
 		g.fillRoundedRectangle(thumbRect, cornerSize);
 
+		// middle
 		g.setColour(juce::Colour(20, 20, 24));
-		g.fillRoundedRectangle(thumbRect.reduced(1.5f), cornerSize - 1.0f);
+		g.fillRoundedRectangle(thumbRect.reduced(1.25f), 0.f);
 
+
+		// middle line
 		g.setColour(juce::Colours::white);
-		float lineWidth = 1.5f;
+		float lineWidth = 1.f;
 
 		g.fillRoundedRectangle(thumbRect.getCentreX() - (lineWidth / 2.0f),
 			thumbRect.getY() + 4.0f,
@@ -94,7 +119,7 @@ public:
 };
 
 
-class TextSlider : public Component {
+class TextSlider : public Component, public juce::Slider::Listener {
 public:
 	int LOCAL_MARGIN = 2;
 	int LABEL_WIDTH = 60;
@@ -114,14 +139,19 @@ public:
 		slider.setLookAndFeel(&CustomSliderLookAndFeel);
 
 
+
 		slider.setRange(start, end, degree);
 		slider.setValue(value, dontSendNotification);
 		slider.setTextValueSuffix(std::string(" ") + unit);
 		slider.addListener(listener);
+		slider.addListener(this);
 
 		if (pivot != NULL) {
 			slider.setSkewFactorFromMidPoint(pivot);
 		}
+
+		label.setFont(ProjectFonts::headerFont(24));
+		label.setColour(juce::Label::textColourId, juce::Colour(98, 100, 110));
 
 		label.setText(labelName, dontSendNotification);
 		label.setJustificationType(Justification::centred);
@@ -130,6 +160,17 @@ public:
 		addAndMakeVisible(slider);
 		addAndMakeVisible(label);
 	};
+
+	void sliderDragStarted(juce::Slider* slider) override {
+		label.setFont(ProjectFonts::boldFont(26));
+	}
+
+	void sliderDragEnded(juce::Slider* slider) override {
+		label.setFont(ProjectFonts::headerFont(24));
+	}
+
+	void sliderValueChanged(juce::Slider* slider) override {}
+
 
 	TextSlider(std::string labelName, std::string unit,
 		AudioParameterFloat* param, Slider::Listener* listener,
@@ -156,8 +197,8 @@ public:
 
 	virtual void resized() override {
 		Rectangle<int> bounds = getLocalBounds();
-		label.setBounds(bounds.removeFromLeft(LABEL_WIDTH).reduced(LOCAL_MARGIN));
-		slider.setBounds(bounds.reduced(LOCAL_MARGIN));
+		label.setBounds(bounds.removeFromLeft(45));
+		slider.setBounds(bounds);
 	};
 
 	virtual void setValue(float val) {
@@ -342,35 +383,116 @@ private:
 	TextSelector();
 };
 
+
+
+class CustomSwitchButtonLookAndFeel : public juce::LookAndFeel_V4 {
+public:
+	CustomSwitchButtonLookAndFeel() {
+		setColour(juce::ToggleButton::textColourId, juce::Colour(32, 33, 40));
+		setColour(juce::ToggleButton::tickColourId, juce::Colour(200, 48, 48));
+		setColour(juce::ToggleButton::tickDisabledColourId, juce::Colour(32, 33, 40));
+	}
+
+	void drawToggleButton(juce::Graphics& g, juce::ToggleButton& button, bool shouldDrawButtonAsHighlighted,
+		bool shouldDrawButtonAsDown) override {
+		auto bounds = button.getLocalBounds().toFloat();
+
+		// circle congif
+		float circleSize = 15.0f;
+		float circleX = 8.0f;
+		float circleY = (bounds.getHeight() - circleSize) / 2.0f;
+
+		if (button.getToggleState()) {
+			// background circle
+			g.setColour(juce::Colour(32, 33, 40));
+			g.fillEllipse(circleX, circleY, circleSize, circleSize);
+
+			// ontop circle
+			g.setColour(juce::Colour(200, 48, 48));
+			g.fillEllipse(circleX + 2.0f, circleY + 2.0f, circleSize - 4.0f, circleSize - 4.0f);
+		}
+		else {
+			// background circle
+			g.setColour(juce::Colour(32, 33, 40));
+			g.fillEllipse(circleX, circleY, circleSize, circleSize);
+		}
+		// fontt
+		g.setColour(juce::Colour(32, 33, 40));
+		g.setFont(ProjectFonts::boldFont(28));
+		auto textArea = bounds.withTrimmedLeft(circleX + circleSize + 6.0f);
+		g.drawText(button.getButtonText(), textArea, juce::Justification::centredLeft, true);
+
+		// divider
+		int x = 0;
+		int y = 0;
+		int height = (int)button.getHeight();
+		int width = (int)button.getWidth();
+
+		// highlight
+		auto highlightCol = juce::Colour(177, 174, 180);
+		auto shadowCol = juce::Colour(99, 97, 102);
+		g.setColour(highlightCol);
+		g.fillRect(x - 3, y, 1, height);
+		g.fillRect(x + width - 1, y, 1, height);
+
+		// outline
+		g.setColour(Colour(15, 19, 21));
+		g.fillRect(x - 3, y, 1, height);
+		g.fillRect(x + width - 2, y, 1, height);
+
+		// shadow
+		g.setColour(shadowCol);
+		g.fillRect(x - 3, y, 1, height);
+		g.fillRect(x + width - 3, y, 1, height);
+	}
+
+};
+
+
+
+
 class SwitchButton : public Component {
 public:
-	const std::int32_t LOCAL_MARGIN = 2;
-	const std::int32_t LABEL_WIDTH = 60;
-
 	ToggleButton button;
+	CustomSwitchButtonLookAndFeel switchbuttonLAF;
 
-	SwitchButton(std::string label, AudioParameterBool* param, ToggleButton::Listener* listener) {
+	SwitchButton(std::string label, AudioParameterBool* param, ToggleButton::Listener* listener)
+	{
+		button.setLookAndFeel(&switchbuttonLAF);
 		button.setButtonText(label);
-		button.setToggleState(param->get(), dontSendNotification);
+
+		if (param != nullptr)
+			button.setToggleState(param->get(), dontSendNotification);
+
 		button.addListener(listener);
 		addAndMakeVisible(button);
 	};
 
-	virtual void resized() override {
-		Rectangle<int> bounds = getLocalBounds();
-		bounds.removeFromLeft(LABEL_WIDTH * 0.2);
-		button.setBounds(bounds.reduced(LOCAL_MARGIN));
+	~SwitchButton()
+	{
+		button.setLookAndFeel(nullptr);
+	}
+
+	void resized() override
+	{
+		button.setBounds(getLocalBounds());
 	};
 
-	virtual void setToggleState(bool flag) {
+	void setToggleState(bool flag)
+	{
 		button.setToggleState(flag, dontSendNotification);
 	};
 
-	virtual bool getToggleState() { return button.getToggleState(); }
+	bool getToggleState()
+	{
+		return button.getToggleState();
+	}
 
-	virtual void addListener(Button::Listener* listener) {
+	void addListener(Button::Listener* listener)
+	{
 		button.addListener(listener);
 	};
+
 
 private:
 	SwitchButton();

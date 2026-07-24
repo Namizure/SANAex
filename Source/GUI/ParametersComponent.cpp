@@ -181,6 +181,8 @@ static void paintHeaderEffects(Graphics& g, Rectangle<int> bounds, std::string t
 }
 
 
+
+
 static void paintHeaderWaveFormMemory(Graphics& g, Rectangle<int> bounds, std::string text) {
 	{ // 枠の描画
 		auto x = 0.0f, y = HEADER_HEIGHT;
@@ -270,7 +272,7 @@ ChipOscillatorComponent::ChipOscillatorComponent(ChipOscillatorParameters* oscPa
 	volumeLevelSlider("VOL", "dB", _oscParamsPtr->VolumeLevel, this, 0.01f),
 	attackSlider("ATT", "sec", _oscParamsPtr->Attack, this, MIN_DELTA, 1.0f),
 	decaySlider("DEC", "sec", _oscParamsPtr->Decay, this, MIN_DELTA, 1.0f),
-	sustainSlider("SUST", "", _oscParamsPtr->Sustain, this, MIN_DELTA),
+	sustainSlider("SUS", "sec", _oscParamsPtr->Sustain, this, MIN_DELTA),
 	releaseSlider("REL", "sec", _oscParamsPtr->Release, this, MIN_DELTA, 1.0f) {
 	//colorTypeSelector("Arp", _oscParamsPtr->ColorType, this),
 	//colorDurationSlider("Duration", "sec", _oscParamsPtr->ColorDuration, this, MIN_DELTA, 0.2f) 
@@ -507,7 +509,7 @@ VibratoParametersComponent::VibratoParametersComponent(
 	: _vibratoParamsPtr(vibratoParams),
 	enableSwitch("On", _vibratoParamsPtr->VibratoEnable, this),
 	attackDeleySwitch("Attack-Deley-Switch", _vibratoParamsPtr->VibratoAttackDeleySwitch, this),
-	amountSlider("Depth", "HarfTone", _vibratoParamsPtr->VibratoAmount, this, MIN_DELTA, 2.0f),
+	amountSlider("Depth", "Tone", _vibratoParamsPtr->VibratoAmount, this, MIN_DELTA, 2.0f),
 	speedSlider("Speed", "hz", _vibratoParamsPtr->VibratoSpeed, this, MIN_DELTA, 10.0f),
 	attackDeleyTimeSlider("Attack", "sec", _vibratoParamsPtr->VibratoAttackTime, this, 0.001f, 2.0f) {
 	addAndMakeVisible(enableSwitch);
@@ -698,12 +700,74 @@ void OptionsParametersComponent::sliderValueChanged(Slider* slider) {
 	}
 }
 
+static void paintHeaderARPS(Graphics& g, Rectangle<int> bounds, std::string text) {
+	auto x = 0.0f;
+	auto y = 0.0f;
+	auto width = (float)bounds.getWidth();
+	auto height = (float)bounds.getHeight();
+	auto thickness = 2.0f;
+
+	float bottomPanelHeight = 40.0f;
+
+	g.setColour(Colour(26, 33, 38)); //26, 33, 38
+	g.drawRoundedRectangle(x, y + 24, width, height / 1.08, 0.f, thickness);
+
+	g.setColour(Colour(147, 145, 150));
+	juce::Path p;
+	p.addRoundedRectangle(x, height - bottomPanelHeight, width, bottomPanelHeight,
+		6.0f, 6.0f,
+		false, false, true, true);
+	g.fillPath(p);
+	float textSectionWidth = width / 6.0f;
+
+	g.setFont(ProjectFonts::boldFont(28.0f));
+	g.setColour(Colour(32, 33, 40));
+
+	g.drawText(text, x, height - bottomPanelHeight, textSectionWidth, bottomPanelHeight,
+		Justification::centred, false);
+
+	auto highlightCol = juce::Colour(206, 203, 210);
+
+	// left edge highlight
+	juce::Path leftEdge;
+	leftEdge.startNewSubPath(x + 1, height - 6.0);
+	leftEdge.lineTo(x + 1, (height / 1.09));
+	g.setColour(highlightCol);
+	g.strokePath(leftEdge, juce::PathStrokeType(1.f));
+
+	// left bottom arc highlight
+	juce::Path corner;
+	corner.addArc(x + 1, height - 12,
+		6.0 * 2.0f,
+		6.0 * 2.0f,
+		-juce::MathConstants<float>::halfPi,
+		-juce::MathConstants<float>::pi, true);
+
+	g.setColour(highlightCol);
+	g.strokePath(corner, juce::PathStrokeType(1.f));
+
+	// extra line before "on"
+	float dividerX = textSectionWidth - 5;
+	float startY = (height - bottomPanelHeight);
+	float lineLength = bottomPanelHeight;
+
+	g.setColour(Colour(15, 19, 21));
+	g.fillRect(dividerX, startY, 1.0f, lineLength);
+
+	g.setColour(Colour(99, 97, 102));
+	g.fillRect(dividerX - 1.f, startY, 1.0f, lineLength);
+
+	g.setColour(Colour(177, 174, 180));
+	g.fillRect(dividerX + 1.0f, startY, 1.0f, lineLength);
+
+}
+
 ArpSequencerComponent::ArpSequencerComponent(ArpParameters* arpParameters)
 	: BaseComponent(),
 	_arpParameters(arpParameters),
-	_enableSwitch("On", _arpParameters->ArpEnabled, this),
-	_loopSwitch("Loop", _arpParameters->LoopEnabled, this),
-	_stepTimeSlider("Duration", "sec", _arpParameters->ArpStepTime, this, MIN_DELTA, 0.25f),
+	_enableSwitch("ON", _arpParameters->ArpEnabled, this),
+	_loopSwitch("LOOP", _arpParameters->LoopEnabled, this),
+	_stepTimeSlider("DURATION", "sec", _arpParameters->ArpStepTime, this, MIN_DELTA, 0.25f),
 	_rangeSliders(_arpParameters) {
 
 	addAndMakeVisible(_enableSwitch);
@@ -713,21 +777,21 @@ ArpSequencerComponent::ArpSequencerComponent(ArpParameters* arpParameters)
 }
 
 void ArpSequencerComponent::paint(Graphics& g) {
-	paintHeaderWaveFormMemory(g, getLocalBounds(), "ARPS");
+	paintHeaderARPS(g, getLocalBounds(), "ARPS");
 }
 
 void ArpSequencerComponent::resized() {
 	Rectangle<int> bounds = getLocalBounds();
 	bounds.removeFromTop(HEADER_HEIGHT);
+	int bottomStripHeight = 40;
+	auto area = bounds.removeFromBottom(bottomStripHeight);
 
-	{
-		auto area = bounds.removeFromBottom(40);
-		auto width = area.getWidth() / 4.0f;
-		_enableSwitch.setBounds(area.removeFromLeft(width).reduced(LOCAL_MARGIN));
-		_loopSwitch.setBounds(area.removeFromLeft(width).reduced(LOCAL_MARGIN));
-		_stepTimeSlider.setBounds(area.reduced(LOCAL_MARGIN));
-	}
+	auto width = area.getWidth() / 6.0f;
+	area.removeFromLeft(width);
 
+	_enableSwitch.setBounds(area.removeFromLeft(width - 14));
+	_loopSwitch.setBounds(area.removeFromLeft(width));
+	_stepTimeSlider.setBounds(area.reduced(LOCAL_MARGIN));
 	_rangeSliders.setBounds(bounds.reduced(LOCAL_MARGIN));
 }
 
