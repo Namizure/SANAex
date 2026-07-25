@@ -1208,6 +1208,9 @@ void FilterParametersComponent::buttonClicked(Button* button) {
 	resized();
 }
 
+// wavepatterns
+
+// ==============================================================================================================================
 
 WavePatternsComponent::WavePatternsComponent(WavePatternParameters* wavePatternParameters,
 	ChipOscillatorParameters* chipOscParams,
@@ -1216,9 +1219,9 @@ WavePatternsComponent::WavePatternsComponent(WavePatternParameters* wavePatternP
 	_wavePatternParameters(wavePatternParameters),
 	_chipOscParamsPtr(chipOscParams),
 	_waveformMemoryParamsPtr(waveformMemoryParams),
-	_enableSwitch("On", _wavePatternParameters->PatternEnabled, this),
-	_loopSwitch("Loop", _wavePatternParameters->LoopEnabled, this),
-	_stepTimeSlider("Duration", "sec", _wavePatternParameters->StepTime, this, MIN_DELTA, 0.25f),
+	_enableSwitch("ON", _wavePatternParameters->PatternEnabled, this),
+	_loopSwitch("LOOP", _wavePatternParameters->LoopEnabled, this),
+	_stepTimeSlider("DURATION", "sec", _wavePatternParameters->StepTime, this, MIN_DELTA, 0.25f),
 	_rangeSliders(_wavePatternParameters) {
 	StringArray availableWaveforms;
 	availableWaveforms.add("NES_Square50%");
@@ -1246,7 +1249,7 @@ WavePatternsComponent::WavePatternsComponent(WavePatternParameters* wavePatternP
 		}
 	}
 	for (auto i = 0; i < WAVEPATTERN_TYPES; ++i) {
-		_waveTypeSelectors[i] = new TextSelector("", availableWaveforms, this);
+		_waveTypeSelectors[i] = new TextSelectorSmall("", availableWaveforms, this);
 		_waveTypeSelectors[i]->removeLabel();
 		int currentWaveIndex = _wavePatternParameters->WaveTypes[i]->get();
 		_waveTypeSelectors[i]->setSelectedItemIndex(currentWaveIndex);
@@ -1262,27 +1265,52 @@ WavePatternsComponent::WavePatternsComponent(WavePatternParameters* wavePatternP
 
 
 void WavePatternsComponent::paint(Graphics& g) {
-	paintHeader(g, getLocalBounds(), "WavePatterns");
+	paintHeader(g, getLocalBounds(), "");
 }
 
 void WavePatternsComponent::resized() {
 	Rectangle<int> bounds = getLocalBounds();
+
 	bounds.removeFromTop(HEADER_HEIGHT);
+
+	bounds.removeFromLeft(14);
+	bounds.removeFromRight(24);
+	bounds.removeFromTop(2);
+	//bounds.removeFromBottom(4);
+
 	{
-		auto area = bounds.removeFromTop(bounds.getHeight() / 12.0f);
-		auto width = area.getWidth() / 6.0f;
-		_enableSwitch.setBounds(area.removeFromLeft(width));
-		_loopSwitch.setBounds(area.removeFromLeft(width));
+		auto area = bounds.removeFromTop(31);
+		area.translate(0, -4);
+		auto switchWidth = 85;
+
+		_enableSwitch.setBounds(area.removeFromLeft(switchWidth - 10));
+		_loopSwitch.setBounds(area.removeFromLeft(switchWidth));
+		area.removeFromLeft(10);
+		area.removeFromRight(5);
 		_stepTimeSlider.setBounds(area);
+	}
+
+	bounds.removeFromTop(1);
+	bounds.removeFromBottom(18);
+	{
+		auto area = bounds.removeFromLeft(125);
+		area.removeFromLeft(15);
+		bounds.removeFromLeft(8);
+
+		float totalHeight = area.getHeight();
+		int startY = area.getY();
+		int x = area.getX();
+		int width = area.getWidth();
+
+		for (auto i = WAVEPATTERN_TYPES - 1; i >= 0; --i) {
+			int row = (WAVEPATTERN_TYPES - 1) - i;
+			int y = startY + (int)std::round(row * totalHeight / WAVEPATTERN_TYPES);
+			int nextY = startY + (int)std::round((row + 1) * totalHeight / WAVEPATTERN_TYPES);
+			_waveTypeSelectors[i]->setBounds(juce::Rectangle<int>(x, y, width, nextY - y).reduced(0, 1));
+		}
 
 	}
-	{
-		auto area = bounds.removeFromLeft(150);
-		auto compHeight = area.getHeight() / (float)WAVEPATTERN_TYPES;
-		for (auto i = WAVEPATTERN_TYPES - 1; i >= 0; --i) {
-			_waveTypeSelectors[i]->setBounds(area.removeFromTop(compHeight));
-		}
-	}
+
 
 	_rangeSliders.setBounds(bounds);
 }

@@ -382,10 +382,10 @@ private:
 	virtual void sliderValueChanged(Slider* slider) override;
 
 	WavePatternParameters* _wavePatternParameters;
-	SwitchButton _enableSwitch;
-	SwitchButton _loopSwitch;
-	TextSlider _stepTimeSlider;
-	TextSelector* _waveTypeSelectors[WAVEPATTERN_TYPES];
+	SwitchButtonSmall _enableSwitch;
+	SwitchButtonSmall _loopSwitch;
+	TextSliderSmall _stepTimeSlider;
+	TextSelectorSmall* _waveTypeSelectors[WAVEPATTERN_TYPES];
 	PatternSliders _rangeSliders;
 
 	const StringArray OSC_WAVE_TYPES{
@@ -423,6 +423,6 @@ private:
 	ArpParameters* _arpParameters;
 	SwitchButton _loopSwitch;
 	SwitchButton _enableSwitch;
-	TextSlider _stepTimeSlider;
+	TextSliderSmall _stepTimeSlider;
 	ArpSliders _rangeSliders;
 };

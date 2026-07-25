@@ -161,6 +161,10 @@ public:
 		addAndMakeVisible(label);
 	};
 
+	~TextSlider() override {
+		slider.setLookAndFeel(nullptr);
+	}
+
 	void sliderDragStarted(juce::Slider* slider) override {
 		label.setFont(ProjectFonts::boldFont(26));
 	}
@@ -215,6 +219,171 @@ private:
 	TextSlider();
 };
 
+
+
+
+
+
+class CustomSmallSliderLookAndFeel : public juce::LookAndFeel_V4 {
+public:
+	CustomSmallSliderLookAndFeel() {
+		setColour(juce::Slider::backgroundColourId, juce::Colour(255, 255, 255));
+		setColour(juce::Slider::thumbColourId, juce::Colours::white);
+		setColour(juce::Slider::textBoxTextColourId, juce::Colours::white);
+		setColour(juce::Slider::trackColourId, juce::Colour(200, 48, 48));
+	}
+
+	void drawLabel(juce::Graphics& g, juce::Label& label) override {
+		auto bounds = label.getLocalBounds().toFloat();
+		// background
+		g.setColour(Colour(19, 19, 19));
+		g.fillRoundedRectangle(bounds, 3.f);
+		// outline
+		g.setColour(juce::Colours::white);
+		g.drawRoundedRectangle(bounds.reduced(1.5f / 2.0f), 3.f, 1.f);
+		//text
+		g.setColour(juce::Colours::white);
+		g.setFont(ProjectFonts::semiboldFont(18));
+		g.setOpacity(label.isEnabled() ? 1.0f : 0.5f);
+
+		g.drawFittedText(label.getText(),
+			label.getLocalBounds().reduced(6, 2),
+			label.getJustificationType(),
+			juce::jmax(1, (int)((float)label.getHeight() / g.getCurrentFont().getHeight())),
+			label.getMinimumHorizontalScale());
+	}
+
+
+	void drawLinearSlider(juce::Graphics& g, int x, int y, int width, int height,
+		float sliderPos, float minSliderPos, float maxSliderPos,
+		const juce::Slider::SliderStyle style, juce::Slider& slider) override {
+
+		// slider
+		float trackHeight = 6.0f;
+		float trackRadius = trackHeight / 2.0f;
+		float trackY = (float)y + ((float)height - trackHeight) / 2.0f;
+
+		// white part
+		g.setColour(slider.findColour(juce::Slider::backgroundColourId));
+		g.fillRoundedRectangle((float)x, trackY, (float)width, trackHeight, trackRadius);
+
+		// red part
+		g.setColour(slider.findColour(juce::Slider::trackColourId));
+		g.fillRoundedRectangle((float)x, trackY, sliderPos - (float)x, trackHeight, trackRadius);
+
+
+		// thumb (circle in the middle)(
+		float thumbWidth = 9.0f;
+		float thumbHeight = 16.0f;
+
+		juce::Rectangle<float> thumbRect(sliderPos - (thumbWidth / 2.0f),
+			(float)y + ((float)height - thumbHeight) / 2.0f,
+			thumbWidth / 1.15, thumbHeight);
+
+		float cornerSize = 2.f;
+
+		// around
+		g.setColour(juce::Colours::white);
+		g.fillRoundedRectangle(thumbRect, cornerSize);
+
+		// middle
+		g.setColour(juce::Colour(20, 20, 24));
+		g.fillRoundedRectangle(thumbRect.reduced(1.25f), 0.f);
+
+
+		// middle line
+		g.setColour(juce::Colours::white);
+		float lineWidth = 1.f;
+
+		g.fillRoundedRectangle(thumbRect.getCentreX() - (lineWidth / 2.0f),
+			thumbRect.getY() + 4.0f,
+			lineWidth,
+			thumbRect.getHeight() - 8.0f,
+			0.5f);
+	}
+};
+
+
+class TextSliderSmall : public Component {
+public:
+	int LOCAL_MARGIN = 2;
+	int LABEL_WIDTH = 60;
+
+	Slider slider;
+	Label label;
+
+	CustomSmallSliderLookAndFeel CustomSliderLookAndFeel;
+
+	TextSliderSmall(std::string labelName, std::string unit, float value, float start,
+		float end, Slider::Listener* listener, float degree = 0.1f,
+		float pivot = NULL)
+		: slider(Slider::SliderStyle::LinearHorizontal,
+			Slider::TextEntryBoxPosition::TextBoxLeft) {
+
+		slider.setLookAndFeel(&CustomSliderLookAndFeel);
+
+		slider.setRange(start, end, degree);
+		slider.setValue(value, dontSendNotification);
+		slider.setTextValueSuffix(std::string(" ") + unit);
+		slider.addListener(listener);
+
+		if (pivot != NULL) {
+			slider.setSkewFactorFromMidPoint(pivot);
+		}
+
+		label.setFont(ProjectFonts::boldFont(20));
+		label.setColour(juce::Label::textColourId, juce::Colour(32, 33, 40));
+
+		label.setText(labelName, dontSendNotification);
+		label.setJustificationType(Justification::centred);
+		label.setEditable(false, false, false);
+
+		addAndMakeVisible(slider);
+		addAndMakeVisible(label);
+	};
+
+	~TextSliderSmall() override {
+		slider.setLookAndFeel(nullptr);
+	}
+
+	TextSliderSmall(std::string labelName, std::string unit,
+		AudioParameterFloat* param, Slider::Listener* listener,
+		float degree = 0.1f, float pivot = NULL)
+		: TextSliderSmall(labelName, unit, param->get(), param->range.start,
+			param->range.end, listener, degree, pivot) {
+	};
+	TextSliderSmall(std::string labelName, std::string unit, AudioParameterInt* param,
+		Slider::Listener* listener)
+		: TextSliderSmall(labelName, unit, param->get(), param->getRange().getStart(),
+			param->getRange().getEnd(), listener, 1.0f) {
+	};
+
+	virtual void setAlpha(float alpha) {
+		slider.setAlpha(alpha);
+		label.setAlpha(alpha);
+	};
+
+	virtual void resized() override {
+		Rectangle<int> bounds = getLocalBounds();
+		label.setBounds(bounds.removeFromLeft(60));
+		slider.setBounds(bounds);
+	};
+
+	virtual void setValue(float val) {
+		slider.setValue(val, dontSendNotification);
+	};
+
+	virtual float getValue() { return slider.getValue(); };
+
+	virtual void addListener(Slider::Listener* listener) {
+		slider.addListener(listener);
+	};
+
+private:
+	TextSliderSmall();
+};
+
+
 class TextSliderIncDec : public TextSlider {
 public:
 	TextSliderIncDec(std::string labelName, std::string unit, int value,
@@ -239,12 +408,12 @@ public:
 	CustomComboBoxLookAndFeel() {
 		setColour(juce::ComboBox::backgroundColourId, juce::Colour(0.0f, 0.0f, 0.0f, 0.0f));
 		setColour(juce::ComboBox::textColourId, juce::Colour(32, 33, 40));
-		setColour(juce::ComboBox::outlineColourId, juce::Colours::transparentBlack.withAlpha(0.0f)); //32, 33, 40, 0.0f
+		setColour(juce::ComboBox::outlineColourId, juce::Colours::transparentBlack.withAlpha(0.0f));
 		setColour(juce::ComboBox::arrowColourId, juce::Colour(32, 33, 40));
 	}
 
 	juce::Font getComboBoxFont(juce::ComboBox& box) override {
-		return juce::Font(ProjectFonts::semiboldFont(24.f));
+		return juce::Font(ProjectFonts::semiboldFont(26.f));
 
 	}
 
@@ -252,7 +421,8 @@ public:
 		label.setJustificationType(juce::Justification::centred);
 	}
 
-	void drawComboBox(juce::Graphics& g, int width, int height, bool isButtonDown, int buttonX, int buttonY, int buttonW, int buttonH, juce::ComboBox& box) override {
+	void drawComboBox(juce::Graphics& g, int width, int height, bool isButtonDown,
+		int buttonX, int buttonY, int buttonW, int buttonH, juce::ComboBox& box) override {
 		juce::Rectangle<int> boxBounds(0, 0, width, height);
 
 
@@ -278,6 +448,38 @@ public:
 	}
 };
 
+
+
+
+class PatternComboBoxLookAndFeel : public juce::LookAndFeel_V4 {
+public:
+	PatternComboBoxLookAndFeel() {
+		setColour(juce::ComboBox::backgroundColourId, juce::Colour(71, 71, 78));
+		setColour(juce::ComboBox::textColourId, juce::Colour(170, 170, 175));
+		setColour(juce::ComboBox::outlineColourId, juce::Colours::transparentBlack.withAlpha(0.0f));
+	}
+
+	juce::Font getComboBoxFont(juce::ComboBox& box) override {
+		return juce::Font(ProjectFonts::headerFont(22.f));
+	}
+
+	void positionComboBoxText(juce::ComboBox& box, juce::Label& label) override {
+		label.setBounds(0, 0, box.getWidth(), box.getHeight());
+		label.setFont(getComboBoxFont(box));
+		label.setJustificationType(juce::Justification::centred);
+	}
+
+	void drawComboBox(juce::Graphics& g, int width, int height, bool isButtonDown, int buttonX, int buttonY, int buttonW, int buttonH, juce::ComboBox& box) override {
+		juce::Rectangle<int> boxBounds(0, 0, width, height);
+		g.setColour(box.findColour(juce::ComboBox::backgroundColourId));
+		float cornerRadius = 5.0f;
+		g.fillRoundedRectangle(boxBounds.toFloat(), cornerRadius);
+		g.setColour(box.findColour(juce::ComboBox::outlineColourId));
+		g.drawRoundedRectangle(boxBounds.toFloat().reduced(0.5f, 0.5f), cornerRadius, 1.0f);
+	}
+};
+
+
 class TextSelector : public Component {
 public:
 	int LOCAL_MARGIN = 2;
@@ -287,6 +489,7 @@ public:
 	Label label;
 
 	CustomComboBoxLookAndFeel customComboLnF;
+	PatternComboBoxLookAndFeel patternComboLnF;
 
 	TextSelector(std::string labelName, AudioParameterChoice* paramList, ComboBox::Listener* listener)
 		: selector(labelName) {
@@ -311,6 +514,9 @@ public:
 
 	TextSelector(std::string labelName, const StringArray& items, ComboBox::Listener* listener)
 		: selector(labelName) {
+
+		selector.setLookAndFeel(&patternComboLnF);
+
 		selector.addItemList(items, 1);
 		selector.setSelectedItemIndex(0, dontSendNotification);
 		selector.setJustificationType(Justification::centred);
@@ -383,6 +589,95 @@ private:
 	TextSelector();
 };
 
+class TextSelectorSmall : public Component {
+public:
+	int LOCAL_MARGIN = 2;
+	int LABEL_WIDTH = 60;
+
+	ComboBox selector;
+	Label label;
+
+	CustomComboBoxLookAndFeel customComboLnF;
+	PatternComboBoxLookAndFeel patternComboLnF;
+
+	TextSelectorSmall(std::string labelName, AudioParameterChoice* paramList, ComboBox::Listener* listener)
+		: selector(labelName) {
+
+		selector.addItemList(paramList->getAllValueStrings(), 1);
+		selector.setSelectedItemIndex(paramList->getIndex(), dontSendNotification);
+		selector.setJustificationType(Justification::centred);
+		selector.addListener(listener);
+		addAndMakeVisible(selector);
+
+		label.setFont(ProjectFonts::semiboldFont(32.f));
+		label.setColour(juce::Label::textColourId, juce::Colour(32, 33, 40));
+
+		label.setText(labelName, dontSendNotification);
+		label.setJustificationType(Justification::centred);
+		label.setEditable(false, false, false);
+		addAndMakeVisible(label);
+	};
+
+
+	TextSelectorSmall(std::string labelName, const StringArray& items, ComboBox::Listener* listener)
+		: selector(labelName) {
+
+		selector.setLookAndFeel(&patternComboLnF);
+
+		selector.addItemList(items, 1);
+		selector.setSelectedItemIndex(0, dontSendNotification);
+		selector.setJustificationType(Justification::centred);
+		selector.addListener(listener);
+		addAndMakeVisible(selector);
+
+		label.setFont(ProjectFonts::headerFont(12.f));
+
+		label.setText(labelName, dontSendNotification);
+		label.setJustificationType(Justification::centred);
+		label.setEditable(false, false, false);
+		addAndMakeVisible(label);
+	};
+
+	~TextSelectorSmall() override {
+		selector.setLookAndFeel(nullptr);
+	}
+
+
+	virtual void resized() override {
+		Rectangle<int> bounds = getLocalBounds();
+
+		if (LABEL_WIDTH > 0) {
+			label.setBounds(bounds.removeFromLeft(LABEL_WIDTH + 120).reduced(LOCAL_MARGIN).withY(-1));
+		}
+
+		selector.setBounds(bounds.reduced(LOCAL_MARGIN * 4));
+	};
+
+
+	virtual void paint(Graphics& g) {
+	}
+
+	virtual void addListener(ComboBox::Listener* listener) {
+		selector.addListener(listener);
+	};
+
+	virtual float getSelectedItemIndex() {
+		return selector.getSelectedItemIndex();
+	};
+
+	virtual void setSelectedItemIndex(int index) {
+		selector.setSelectedItemIndex(index, dontSendNotification);
+	}
+
+	void removeLabel() {
+		this->LABEL_WIDTH = 0;
+		this->LOCAL_MARGIN = 0;
+	}
+
+private:
+	TextSelectorSmall();
+};
+
 
 
 class CustomSwitchButtonLookAndFeel : public juce::LookAndFeel_V4 {
@@ -448,9 +743,6 @@ public:
 
 };
 
-
-
-
 class SwitchButton : public Component {
 public:
 	ToggleButton button;
@@ -497,6 +789,123 @@ public:
 private:
 	SwitchButton();
 };
+
+
+// special buttons for wavepatterns
+class CustomSwitchButtonSmallLookAndFeel : public juce::LookAndFeel_V4 {
+public:
+	CustomSwitchButtonSmallLookAndFeel() {
+		setColour(juce::ToggleButton::textColourId, juce::Colour(32, 33, 40));
+		setColour(juce::ToggleButton::tickColourId, juce::Colour(200, 48, 48));
+		setColour(juce::ToggleButton::tickDisabledColourId, juce::Colour(32, 33, 40));
+	}
+
+	void drawToggleButton(juce::Graphics& g, juce::ToggleButton& button, bool shouldDrawButtonAsHighlighted,
+		bool shouldDrawButtonAsDown) override {
+		auto bounds = button.getLocalBounds().toFloat();
+
+		// circle congif
+		float circleSize = 15.0f;
+		float circleX = 8.0f;
+		float circleY = (bounds.getHeight() - circleSize) / 2.0f;
+
+		if (button.getToggleState()) {
+			// background circle
+			g.setColour(juce::Colour(32, 33, 40));
+			g.fillEllipse(circleX, circleY, circleSize, circleSize);
+
+			// ontop circle
+			g.setColour(juce::Colour(200, 48, 48));
+			g.fillEllipse(circleX + 2.0f, circleY + 2.0f, circleSize - 4.0f, circleSize - 4.0f);
+		}
+		else {
+			// background circle
+			g.setColour(juce::Colour(32, 33, 40));
+			g.fillEllipse(circleX, circleY, circleSize, circleSize);
+		}
+		// fontt
+		g.setColour(juce::Colour(32, 33, 40));
+		g.setFont(ProjectFonts::boldFont(28));
+		auto textArea = bounds.withTrimmedLeft(circleX + circleSize + 6.0f);
+		g.drawText(button.getButtonText(), textArea, juce::Justification::centredLeft, true);
+
+		// divider
+		int x = 0;
+		int y = 0;
+		int height = (int)button.getHeight() * 5;
+		int width = (int)button.getWidth();
+
+		// highlight
+		auto highlightCol = juce::Colour(177, 174, 180);
+		auto shadowCol = juce::Colour(99, 97, 102);
+		g.setColour(highlightCol);
+		g.fillRect(x - 3, y, 1, height);
+		g.fillRect(x + width - 1, y, 1, height * 2);
+
+		// outline
+		g.setColour(Colour(15, 19, 21));
+		g.fillRect(x - 3, y, 1, height);
+		g.fillRect(x + width - 2, y, 1, height * 2);
+
+		// shadow
+		g.setColour(shadowCol);
+		g.fillRect(x - 3, y, 1, height);
+		g.fillRect(x + width - 3, y, 1, height * 2);
+	}
+
+};
+
+
+
+
+class SwitchButtonSmall : public Component {
+public:
+	ToggleButton button;
+	CustomSwitchButtonSmallLookAndFeel switchbuttonLAF;
+
+	SwitchButtonSmall(std::string label, AudioParameterBool* param, ToggleButton::Listener* listener)
+	{
+		button.setLookAndFeel(&switchbuttonLAF);
+		button.setButtonText(label);
+
+		if (param != nullptr)
+			button.setToggleState(param->get(), dontSendNotification);
+
+		button.addListener(listener);
+		addAndMakeVisible(button);
+	};
+
+	~SwitchButtonSmall()
+	{
+		button.setLookAndFeel(nullptr);
+	}
+
+	void resized() override
+	{
+		button.setBounds(getLocalBounds());
+	};
+
+	void setToggleState(bool flag)
+	{
+		button.setToggleState(flag, dontSendNotification);
+	};
+
+	bool getToggleState()
+	{
+		return button.getToggleState();
+	}
+
+	void addListener(Button::Listener* listener)
+	{
+		button.addListener(listener);
+	};
+
+
+private:
+	SwitchButtonSmall();
+};
+
+
 
 
 class PageButton : public juce::Component {
@@ -826,6 +1235,17 @@ public:
 		startTimerHz(10);
 	}
 	virtual void paint(Graphics& g) override {
+
+
+
+
+		juce::ColourGradient gradient(
+			juce::Colour(32, 33, 40), 0.0f, 150.0f,
+			juce::Colour(45, 33, 39), 0.0f, 350.0f,
+			false);
+		g.setGradientFill(gradient);
+		g.fillAll();
+
 		for (auto* trail : _trails) {
 			auto compWidth = getWidth();
 			auto compHeight = getHeight();
@@ -876,12 +1296,12 @@ public:
 					getHeight() / float(valueMax));
 				float saturateRate = (i + sampleNum / 2.f) / (sampleNum + sampleNum / 2.f);
 
-				Colour barColour(253, 167, 63);
+				Colour barColour(200, 48, 48);
 				if (i == endStepIndex) {
-					barColour = Colour(220, 50, 50);
+					barColour = Colours::white;
 				}
 				else if (endStepIndex >= 0 && i > endStepIndex) {
-					barColour = Colour(202, 133, 50);
+					barColour = Colours::blue;
 				}
 
 				g.setColour(barColour);
@@ -892,14 +1312,14 @@ public:
 			for (auto i = 0; i <= valueMax; ++i) {
 				float p_y = getHeight() / float(valueMax) * i;
 				Line<float> line(0.0f, p_y, (float)getWidth(), p_y);
-				g.setColour(Colour(26, 33, 38));
+				g.setColour(Colour(17, 18, 22));
 				g.drawLine(line, 1.5f);
 			}
 
 			for (auto i = 0; i <= sampleNum; ++i) {
 				float p_x = getWidth() / float(sampleNum) * i;
 				Line<float> line(p_x, 0.0f, p_x, (float)getHeight());
-				g.setColour(Colour(26, 33, 38));
+				g.setColour(Colour(17, 18, 22));
 				g.drawLine(line, 1.5f);
 			}
 		}

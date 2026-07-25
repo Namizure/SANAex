@@ -339,7 +339,7 @@ WavePatternParameters::WavePatternParameters() {
 
 	PatternEnabled = new AudioParameterBool("PATTERN_ENABLE", "Pattern-Enable", false);
 	LoopEnabled = new AudioParameterBool("PATTERN_LOOP_ENABLE", "Pattern-Loop-Enable", true);
-	StepTime = new AudioParameterFloat("PATTERN_STEP_TIME", "Pattern-Step-Time", { 0.000f, 1.0f, MIN_DELTA }, 0.10f);
+	StepTime = new AudioParameterFloat("PATTERN_STEP_TIME", "Pattern-Step-Time", { 0.000f, 0.5000f, MIN_DELTA }, 0.10f);
 }
 
 void WavePatternParameters::addAllParameters(AudioProcessor& processor) {

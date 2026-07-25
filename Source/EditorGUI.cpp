@@ -233,6 +233,7 @@ void EditorGUI::resized() {
 	// Oscillator Page (WAVE)
 	if (OscButton.button.getToggleState() == true) {
 		Rectangle<int> mainbounds = bounds;
+		mainbounds.translate(0, -6);
 		{
 			Rectangle<int> leftArea = mainbounds.removeFromLeft(bounds.getWidth() * 0.45f);
 			auto fullLeftPanelArea = leftArea.reduced(PANEL_MARGIN);
@@ -253,6 +254,8 @@ void EditorGUI::resized() {
 
 	if (EffectButton.button.getToggleState() == true) {
 		Rectangle<int> mainbounds = bounds;
+		mainbounds.translate(0, -6);
+
 		auto rowHeight = mainbounds.getHeight() / 3;
 		auto colWidth = mainbounds.getWidth() / 2;
 
@@ -284,7 +287,10 @@ void EditorGUI::resized() {
 	if (CycleButton.button.getToggleState() == true)
 	{
 		Rectangle<int> mainbounds = bounds;
-		Rectangle<int> leftArea = mainbounds.removeFromLeft(bounds.getWidth() * 0.5f);
+		mainbounds.translate(0, -6);
+
+
+		Rectangle<int> leftArea = mainbounds.removeFromLeft(bounds.getWidth() * 0.45f);
 		wavePatternsComponent.setBounds(leftArea.reduced(PANEL_MARGIN));
 		int waveformHeight = mainbounds.getHeight() * 1.f;
 		Rectangle<int> rightTopArea = mainbounds.removeFromTop(waveformHeight);
@@ -295,15 +301,17 @@ void EditorGUI::resized() {
 	if (ArpButton.button.getToggleState() == true)
 	{
 		Rectangle<int> mainbounds = bounds;
+		mainbounds.translate(0, -6);
+
 		{
 			Rectangle<int> leftArea = mainbounds.removeFromLeft(bounds.getWidth() * 0.45f);
 			auto fullLeftPanelArea = leftArea.reduced(PANEL_MARGIN);
 			chipOscComponent.setBounds(fullLeftPanelArea);
+
 			int scopeHeight = 245;
 			auto scopeArea = fullLeftPanelArea.removeFromBottom(scopeHeight).reduced(30, 30);
 			scopeComponent.setBounds(scopeArea.translated(2.5, 5));
 			scopeComponent.toFront(false);
-
 		}
 		{
 			Rectangle<int> rightArea = mainbounds;
@@ -312,7 +320,6 @@ void EditorGUI::resized() {
 			);
 		}
 	}
-
 }
 
 void EditorGUI::buttonClicked(Button* button) {
