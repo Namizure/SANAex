@@ -600,8 +600,13 @@ public:
 	CustomComboBoxLookAndFeel customComboLnF;
 	PatternComboBoxLookAndFeel patternComboLnF;
 
+
+
+
 	TextSelectorSmall(std::string labelName, AudioParameterChoice* paramList, ComboBox::Listener* listener)
 		: selector(labelName) {
+
+		selector.setLookAndFeel(&customComboLnF);
 
 		selector.addItemList(paramList->getAllValueStrings(), 1);
 		selector.setSelectedItemIndex(paramList->getIndex(), dontSendNotification);
@@ -791,6 +796,9 @@ private:
 };
 
 
+
+
+
 // special buttons for wavepatterns
 class CustomSwitchButtonSmallLookAndFeel : public juce::LookAndFeel_V4 {
 public:
@@ -855,9 +863,6 @@ public:
 
 };
 
-
-
-
 class SwitchButtonSmall : public Component {
 public:
 	ToggleButton button;
@@ -906,6 +911,106 @@ private:
 };
 
 
+class SwitchOptions : public juce::LookAndFeel_V4 {
+public:
+	SwitchOptions() {
+		setColour(juce::ToggleButton::textColourId, juce::Colour(32, 33, 40));
+		setColour(juce::ToggleButton::tickColourId, juce::Colour(200, 48, 48));
+		setColour(juce::ToggleButton::tickDisabledColourId, juce::Colour(32, 33, 40));
+	}
+
+	void drawToggleButton(juce::Graphics& g, juce::ToggleButton& button, bool shouldDrawButtonAsHighlighted,
+		bool shouldDrawButtonAsDown) override {
+		auto bounds = button.getLocalBounds().toFloat();
+
+		// circle config
+		float circleSize = 15.0f;
+		float circleX = 8.0f;
+		float circleY = (bounds.getHeight() - circleSize) / 2.0f;
+
+		if (button.getToggleState()) {
+			// background circle
+			g.setColour(juce::Colour(32, 33, 40));
+			g.fillEllipse(circleX, circleY, circleSize, circleSize);
+
+			// ontop circle
+			g.setColour(juce::Colour(200, 48, 48));
+			g.fillEllipse(circleX + 2.0f, circleY + 2.0f, circleSize - 4.0f, circleSize - 4.0f);
+		}
+		else {
+			// background circle
+			g.setColour(juce::Colour(32, 33, 40));
+			g.fillEllipse(circleX, circleY, circleSize, circleSize);
+		}
+
+		// font
+		g.setColour(juce::Colour(32, 33, 40));
+		g.setFont(ProjectFonts::boldFont(28));
+		auto textArea = bounds.withTrimmedLeft(circleX + circleSize + 6.0f);
+		g.drawText(button.getButtonText(), textArea, juce::Justification::centredLeft, true);
+
+		int rightEdge = (int)button.getWidth() - 2;
+		int y = -2;
+		int height = (int)button.getHeight();
+
+		// dividers
+		g.setColour(juce::Colour(99, 97, 102));
+		g.fillRect(rightEdge - 1, y, 1, height);
+
+		g.setColour(juce::Colour(15, 19, 21));
+		g.fillRect(rightEdge, y, 1, height);
+
+		g.setColour(juce::Colour(177, 174, 180));
+		g.fillRect(rightEdge + 1, y, 1, height);
+	}
+};
+
+class SwitchButtonOptions : public Component {
+public:
+	ToggleButton button;
+	SwitchOptions switchOptions;
+
+	SwitchButtonOptions(std::string label, AudioParameterBool* param, ToggleButton::Listener* listener)
+	{
+		button.setLookAndFeel(&switchOptions);
+		button.setButtonText(label);
+
+		if (param != nullptr)
+			button.setToggleState(param->get(), dontSendNotification);
+
+		button.addListener(listener);
+		addAndMakeVisible(button);
+	};
+
+	~SwitchButtonOptions()
+	{
+		button.setLookAndFeel(nullptr);
+	}
+
+	void resized() override
+	{
+		button.setBounds(getLocalBounds());
+	};
+
+	void setToggleState(bool flag)
+	{
+		button.setToggleState(flag, dontSendNotification);
+	};
+
+	bool getToggleState()
+	{
+		return button.getToggleState();
+	}
+
+	void addListener(Button::Listener* listener)
+	{
+		button.addListener(listener);
+	};
+
+
+private:
+	SwitchButtonOptions();
+};
 
 
 class PageButton : public juce::Component {

@@ -152,16 +152,148 @@ static void paintHeader(Graphics& g, Rectangle<int> bounds, std::string text) {
 
 static void paintHeaderEffects(Graphics& g, Rectangle<int> bounds, std::string text) {
 	{ // 枠の描画
-		auto x = 0.0f,
+		auto x = 10.0f,
 			y = HEADER_HEIGHT - 2;
-		auto width = (float)bounds.getWidth(),
-			height = (float)bounds.getHeight() - y;
-		auto cornerSize = 9.0f,
-			thickness = 0.0f;
-		g.setColour(Colour(36, 40, 43));
-		g.fillRoundedRectangle(x, y, width, height, cornerSize);
-		g.setColour(Colour(22, 25, 30));
-		g.drawRoundedRectangle(x, y, width, height, cornerSize, thickness);
+		auto width = (float)bounds.getWidth() - 15;
+		auto height = (float)bounds.getHeight() - y;
+
+		auto thickness = 16.0f;
+		auto outerCornerSize = 8.0f;
+		auto innerCornerSize = 10.0f;
+
+
+		// shgadow
+		juce::Path outerpath;
+		outerpath.addRoundedRectangle(x, y, width, height, outerCornerSize);
+		juce::DropShadow shadow(juce::Colours::black.withAlpha(0.7f), 18, juce::Point<int>(0, 0)); //black.withAlpha(0.7f)
+		shadow.drawForPath(g, outerpath);
+
+		g.setColour(juce::Colour(147, 145, 150).withAlpha(0.0f));
+		g.fillPath(outerpath);
+
+
+
+		// outside
+		g.setColour(Colour(147, 145, 150));
+		g.fillRoundedRectangle(x, y, width, height, outerCornerSize);
+
+
+		// start of "bevel" effect 
+		auto highlightCol = juce::Colour(206, 203, 210);
+		auto transparentCol = highlightCol.withAlpha(0.0f);
+
+		float fade = 20.0f;
+
+		// left edge
+		juce::Path leftEdge;
+		leftEdge.startNewSubPath(x + 1, y + height - outerCornerSize);
+		leftEdge.lineTo(x + 1, y + outerCornerSize + 1);
+
+		juce::ColourGradient leftGrad(
+			transparentCol, x + 1, y + height - outerCornerSize,
+			highlightCol, x + 1, y + height - outerCornerSize - fade,
+			false);
+
+		g.setGradientFill(leftGrad);
+		g.strokePath(leftEdge, juce::PathStrokeType(1.f));
+
+
+		// left arc corner
+		juce::Path corner;
+		corner.addArc(x + 1, y + 1, outerCornerSize * 2.0f, outerCornerSize * 2.0f,
+			-juce::MathConstants<float>::halfPi, 0.0f, true);
+		g.setColour(highlightCol);
+		g.strokePath(corner, juce::PathStrokeType(1.f));
+
+
+		// top edge
+		juce::Path topEdge;
+		topEdge.startNewSubPath(x + outerCornerSize + 1, y + 1);
+		topEdge.lineTo(x + width - outerCornerSize, y + 1);
+
+		juce::ColourGradient topGrad(
+			highlightCol, x + width - outerCornerSize - fade, y + 1,
+			transparentCol, x + width - outerCornerSize, y + 1,
+			false);
+
+		g.setGradientFill(topGrad);
+		g.strokePath(topEdge, juce::PathStrokeType(1.5f));
+
+		// end of bevel 
+
+		// inside
+		g.setColour(Colour(32, 33, 40));
+		g.fillRoundedRectangle(x + thickness - 4,
+			y + thickness + 15,
+			width - (thickness * 1.5f),
+			height - (thickness * 2.7f),
+			innerCornerSize);
+
+
+
+
+	}
+
+	{ // ヘッダー描画
+		g.setFont(ProjectFonts::headerFont(32.0f));
+		auto x = 1.f,
+			y = -5.0f;
+		auto width = (float)g.getCurrentFont().getStringWidth(text),
+			height = HEADER_HEIGHT;
+
+		g.setColour(BACKGROUND_COLOUR());
+		g.fillRect(x, y, width, height);
+		g.setColour(Colour(165, 178, 184));
+		g.drawText(text, x, y, width, height, Justification::centred, false);
+	}
+}
+
+
+
+
+
+
+
+
+
+static void paintHeaderVoicing(Graphics& g, Rectangle<int> bounds, std::string text) {
+	{ // 枠の描画
+		auto x = 10.0f,
+			y = HEADER_HEIGHT - 2;
+		auto width = (float)bounds.getWidth() - 15;
+		auto height = (float)bounds.getHeight() - y;
+
+		auto thickness = 16.0f;
+		auto outerCornerSize = 8.0f;
+		auto innerCornerSize = 10.0f;
+
+
+		// shgadow
+		//juce::Path outerpath;
+		//outerpath.addRoundedRectangle(x, y, width, height, outerCornerSize);
+		//juce::DropShadow shadow(juce::Colours::black.withAlpha(0.7f), 18, juce::Point<int>(0, 0)); //black.withAlpha(0.7f)
+		//shadow.drawForPath(g, outerpath);
+
+		//g.setColour(juce::Colour(147, 145, 150).withAlpha(0.0f));
+		//g.fillPath(outerpath);
+
+
+
+		// outside
+		g.setColour(Colour(147, 145, 150));
+		g.fillRoundedRectangle(x, y, width, height, outerCornerSize);
+
+
+
+		// inside
+		g.setColour(Colour(32, 33, 40));
+		g.fillRoundedRectangle(x + thickness - 4,
+			y + thickness + 15,
+			width - (thickness * 1.5f),
+			height - (thickness * 2.7f),
+			innerCornerSize);
+
+
 
 
 	}
@@ -453,21 +585,21 @@ void ChipOscillatorComponent::comboBoxChanged(ComboBox* comboBoxThatHasChanged) 
 
 SweepParametersComponent::SweepParametersComponent(SweepParameters* sweepParams)
 	: _sweepParamsPtr(sweepParams),
-	sweepSwitchSelector("SweepType", _sweepParamsPtr->SweepSwitch, this),
-	timeSlider("Speed", "sec", _sweepParamsPtr->SweepTime, this, 0.01f, 1.0f) {
+	sweepSwitchSelector("SWEEP", _sweepParamsPtr->SweepSwitch, this),
+	timeSlider("SPEED", "sec", _sweepParamsPtr->SweepTime, this, 0.01f, 1.0f) {
 	addAndMakeVisible(sweepSwitchSelector);
 	addAndMakeVisible(timeSlider);
 }
 
 void SweepParametersComponent::paint(Graphics& g) {
-	paintHeaderEffects(g, getLocalBounds(), "PITCH SWEEP");
+	paintHeaderVoicing(g, getLocalBounds(), "");
 }
 
 void SweepParametersComponent::resized() {
 	float rowSize = 1.0f;
 	float divide = 1.0f / rowSize;
 	std::int32_t compHeight =
-		std::int32_t((getHeight() - HEADER_HEIGHT) * divide);
+		std::int32_t((getHeight() - HEADER_HEIGHT));
 
 	Rectangle<int> bounds = getLocalBounds();  // コンポーネント基準の値
 	bounds.removeFromTop(HEADER_HEIGHT);
@@ -504,14 +636,104 @@ bool SweepParametersComponent::isEditable() {
 	return (_sweepParamsPtr->SweepSwitch->getIndex() >= 1) ? true : false;
 }
 
+
+
+
+
+static void paintHeaderVibrato(Graphics& g, Rectangle<int> bounds, std::string text) {
+	auto x = 10.0f;
+	auto y = (float)HEADER_HEIGHT - 2.0f;
+	auto width = (float)bounds.getWidth() - 15.0f;
+	auto height = (float)bounds.getHeight() - y;
+
+	auto thickness = 16.0f;
+	auto outerCornerSize = 8.0f;
+	auto innerCornerSize = 10.0f;
+
+	// shadow
+	juce::Path outerpath;
+	outerpath.addRoundedRectangle(x, y, width, height, outerCornerSize);
+	juce::DropShadow shadow(juce::Colours::black.withAlpha(0.7f), 18, juce::Point<int>(0, 0));
+	shadow.drawForPath(g, outerpath);
+
+	// grey rectangle
+	g.setColour(Colour(147, 145, 150));
+	g.fillRoundedRectangle(x, y, width, height, outerCornerSize);
+
+	// start of bevel effect
+	auto highlightCol = juce::Colour(206, 203, 210);
+	auto transparentCol = highlightCol.withAlpha(0.0f);
+	float fade = 20.0f;
+
+	juce::Path leftEdge;
+	leftEdge.startNewSubPath(x + 1, y + height - outerCornerSize);
+	leftEdge.lineTo(x + 1, y + outerCornerSize + 1);
+
+	juce::ColourGradient leftGrad(
+		transparentCol, x + 1, y + height - outerCornerSize,
+		highlightCol, x + 1, y + height - outerCornerSize - fade,
+		false);
+
+	g.setGradientFill(leftGrad);
+	g.strokePath(leftEdge, juce::PathStrokeType(1.f));
+
+	juce::Path corner;
+	corner.addArc(x + 1, y + 1, outerCornerSize * 2.0f, outerCornerSize * 2.0f,
+		-juce::MathConstants<float>::halfPi, 0.0f, true);
+	g.setColour(highlightCol);
+	g.strokePath(corner, juce::PathStrokeType(1.f));
+
+	juce::Path topEdge;
+	topEdge.startNewSubPath(x + outerCornerSize + 1, y + 1);
+	topEdge.lineTo(x + width - outerCornerSize, y + 1);
+
+	juce::ColourGradient topGrad(
+		highlightCol, x + width - outerCornerSize - fade, y + 1,
+		transparentCol, x + width - outerCornerSize, y + 1,
+		false);
+
+	g.setGradientFill(topGrad);
+	g.strokePath(topEdge, juce::PathStrokeType(1.5f));
+	// end of bevel 
+
+	float innerY = y + thickness + 15.0f;
+	g.setColour(Colour(32, 33, 40));
+	g.fillRoundedRectangle(x + thickness - 4,
+		innerY,
+		width - (thickness * 1.5f),
+		155,
+		innerCornerSize);
+
+	// text
+	float textSectionWidth = width / 6.0f;
+	float topBarHeight = innerY - y;
+
+	g.setFont(ProjectFonts::semiboldFont(30.0f));
+	g.setColour(Colour(32, 33, 40));
+	g.drawText(text, x + 22, y, textSectionWidth, topBarHeight,
+		Justification::centred, false);
+
+	float dividerX = x + textSectionWidth + 30;
+
+	g.setColour(Colour(15, 19, 21));
+	g.fillRect(dividerX + 1.0f, y, 1.0f, topBarHeight);
+
+	g.setColour(Colour(99, 97, 102));
+	g.fillRect(dividerX, y, 1.0f, topBarHeight);
+
+	g.setColour(Colour(177, 174, 180));
+	g.fillRect(dividerX + 2.0f, y, 1.0f, topBarHeight);
+}
+
+
 VibratoParametersComponent::VibratoParametersComponent(
 	VibratoParameters* vibratoParams)
 	: _vibratoParamsPtr(vibratoParams),
-	enableSwitch("On", _vibratoParamsPtr->VibratoEnable, this),
+	enableSwitch("ON", _vibratoParamsPtr->VibratoEnable, this),
 	attackDeleySwitch("Attack-Deley-Switch", _vibratoParamsPtr->VibratoAttackDeleySwitch, this),
-	amountSlider("Depth", "Tone", _vibratoParamsPtr->VibratoAmount, this, MIN_DELTA, 2.0f),
-	speedSlider("Speed", "hz", _vibratoParamsPtr->VibratoSpeed, this, MIN_DELTA, 10.0f),
-	attackDeleyTimeSlider("Attack", "sec", _vibratoParamsPtr->VibratoAttackTime, this, 0.001f, 2.0f) {
+	amountSlider("DEP", "Tone", _vibratoParamsPtr->VibratoAmount, this, MIN_DELTA, 2.0f),
+	speedSlider("SPD", "hz", _vibratoParamsPtr->VibratoSpeed, this, MIN_DELTA, 10.0f),
+	attackDeleyTimeSlider("ATT", "sec", _vibratoParamsPtr->VibratoAttackTime, this, 0.001f, 2.0f) {
 	addAndMakeVisible(enableSwitch);
 	addAndMakeVisible(attackDeleySwitch);
 	addAndMakeVisible(amountSlider);
@@ -519,35 +741,46 @@ VibratoParametersComponent::VibratoParametersComponent(
 	addAndMakeVisible(attackDeleyTimeSlider);
 
 	// 切り替えSwitchのカスタマイズ
-	{ attackDeleySwitch.button.setButtonText("Attack / Delay"); }
+	{ attackDeleySwitch.button.setButtonText("ATTACK"); }
 }
 
 void VibratoParametersComponent::paint(Graphics& g) {
-	paintHeaderEffects(g, getLocalBounds(), "VIBRATO");
+	paintHeaderVibrato(g, getLocalBounds(), "VIBRATO");
 }
 
 void VibratoParametersComponent::resized() {
-	float rowSize = 4.0f;
+	float rowSize = 14.0f;
 	float divide = 1.0f / rowSize;
 	std::int32_t compHeight = std::int32_t((getHeight() - HEADER_HEIGHT) * divide);
-	Rectangle<int> bounds = getLocalBounds();  // コンポーネント基準の値
+	Rectangle<int> bounds = getLocalBounds();
 	bounds.removeFromTop(HEADER_HEIGHT);
+
 	{
 		float alpha = isEditable() ? 1.0f : 0.4f;
 		amountSlider.setAlpha(alpha);
 		speedSlider.setAlpha(alpha);
 		attackDeleyTimeSlider.setAlpha(alpha);
 	}
+
 	{
 		auto b = bounds.removeFromTop(compHeight);
-		enableSwitch.setBounds(b.removeFromLeft(b.getWidth() * 0.3f));
-		attackDeleySwitch.setBounds(b);
+		float startX = 10.0f;
+		float headerWidth = getWidth() - 15.0f;
+		float textSectionWidth = headerWidth / 6.0f;
+		float skipSpace = startX + textSectionWidth + 30.0f + 2.0f;
+		b.removeFromLeft(skipSpace);
+		int onButtonWidth = 80;
+		int attackButtonWidth = 115;
+		// im just going to hard code the spaces because im tired, ui is so tiring
+		enableSwitch.setBounds(b.removeFromLeft(onButtonWidth).removeFromTop(48).translated(10, -2));
+		attackDeleySwitch.setBounds(b.removeFromLeft(attackButtonWidth).removeFromTop(48).translated(20, -2));
 	}
-	amountSlider.setBounds(bounds.removeFromTop(compHeight));
-	speedSlider.setBounds(bounds.removeFromTop(compHeight));
-	attackDeleyTimeSlider.setBounds(bounds.removeFromTop(compHeight));
 
-	//切り替えスイッチ処理
+	int margin = 30;
+	amountSlider.setBounds(bounds.removeFromTop(compHeight).reduced(margin, 0));
+	speedSlider.setBounds(bounds.removeFromTop(compHeight).reduced(margin, 0));
+	attackDeleyTimeSlider.setBounds(bounds.removeFromTop(compHeight).reduced(margin, 0));
+
 	if (_vibratoParamsPtr->VibratoAttackDeleySwitch->get() == true) {
 		attackDeleyTimeSlider.label.setText("Attack", dontSendNotification);
 	}
@@ -596,15 +829,15 @@ bool VibratoParametersComponent::isEditable() {
 VoicingParametersComponent::VoicingParametersComponent(
 	VoicingParameters* voicingParams)
 	: _voicingParamsPtr(voicingParams),
-	voicingTypeSelector("Type", _voicingParamsPtr->VoicingSwitch, this),
-	stepTimeSlider("StepTime", "sec", _voicingParamsPtr->StepTime, this,
+	voicingTypeSelector("VOICING", _voicingParamsPtr->VoicingSwitch, this),
+	stepTimeSlider("STEPTIME", "sec", _voicingParamsPtr->StepTime, this,
 		0.001f, 0.5f) {
 	addAndMakeVisible(voicingTypeSelector);
 	addAndMakeVisible(stepTimeSlider);
 }
 
 void VoicingParametersComponent::paint(Graphics& g) {
-	paintHeaderEffects(g, getLocalBounds(), "VOICING");
+	paintHeaderVoicing(g, getLocalBounds(), "");
 }
 
 void VoicingParametersComponent::resized() {
@@ -1157,7 +1390,7 @@ FilterParametersComponent::FilterParametersComponent(FilterParameters* filterPar
 }
 
 void FilterParametersComponent::paint(Graphics& g) {
-	paintHeaderEffects(g, getLocalBounds(), "FILTER");
+	paintHeaderVoicing(g, getLocalBounds(), "");
 }
 
 void FilterParametersComponent::resized() {

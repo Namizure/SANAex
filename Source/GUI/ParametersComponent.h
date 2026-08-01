@@ -80,7 +80,7 @@ private:
 
 	SweepParameters* _sweepParamsPtr;
 
-	TextSelector sweepSwitchSelector;
+	TextSelectorSmall sweepSwitchSelector;
 	TextSlider timeSlider;
 };
 
@@ -103,8 +103,8 @@ private:
 
 	VibratoParameters* _vibratoParamsPtr;
 
-	SwitchButton enableSwitch;
-	SwitchButton attackDeleySwitch;
+	SwitchButtonOptions enableSwitch;
+	SwitchButtonOptions attackDeleySwitch;
 	TextSlider amountSlider;
 	TextSlider speedSlider;
 	TextSlider attackDeleyTimeSlider;
@@ -128,7 +128,7 @@ private:
 
 	VoicingParameters* _voicingParamsPtr;
 
-	TextSelector voicingTypeSelector;
+	TextSelectorSmall voicingTypeSelector;
 	TextSlider stepTimeSlider;
 };
 

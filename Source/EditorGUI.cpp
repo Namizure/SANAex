@@ -214,6 +214,8 @@ void EditorGUI::paint(Graphics& g) {
 	VersionName += JucePlugin_VersionString;
 	g.drawFittedText(VersionName, AudioProcessorEditor::getLocalBounds(),
 		Justification::topRight, 1);
+
+
 }
 
 
@@ -260,29 +262,51 @@ void EditorGUI::resized() {
 		auto colWidth = mainbounds.getWidth() / 2;
 
 		{
-			auto rowBounds = mainbounds.removeFromTop(rowHeight);
-			auto leftBox = rowBounds.removeFromLeft(colWidth).reduced(PANEL_MARGIN);
-			auto rightBox = rowBounds.reduced(PANEL_MARGIN);
+			Rectangle<int> leftArea = mainbounds.removeFromLeft(bounds.getWidth() * 0.45f);
+			auto fullLeftPanelArea = leftArea.reduced(PANEL_MARGIN);
+			vibratoParamsComponent.setBounds(fullLeftPanelArea);
 
-			vibratoParamsComponent.setBounds(leftBox);
-			sweepParamsComponent.setBounds(rightBox);
-		}
-		{
-			auto rowBounds = mainbounds.removeFromTop(rowHeight);
-			auto leftBox = rowBounds.removeFromLeft(colWidth).reduced(PANEL_MARGIN);
-			auto rightBox = rowBounds.reduced(PANEL_MARGIN);
+			int sweepHeight = 150;
+			auto sweepArea = fullLeftPanelArea.removeFromBottom(sweepHeight);
 
-			midiEchoParamsComponent.setBounds(leftBox);
-			filterParamsComponent.setBounds(rightBox);
-		}
-		{
-			auto leftBox = mainbounds.removeFromLeft(colWidth).reduced(PANEL_MARGIN);
-			auto rightBox = mainbounds.reduced(PANEL_MARGIN);
+			sweepParamsComponent.setBounds(sweepArea);
+			sweepParamsComponent.toFront(false);
 
-			voicingParamsComponent.setBounds(leftBox);
-			optionsParamsComponent.setBounds(rightBox);
+			auto vibratoArea = fullLeftPanelArea.removeFromBottom(sweepHeight);
+			voicingParamsComponent.setBounds(vibratoArea);
+			voicingParamsComponent.toFront(false);
 		}
 	}
+
+	//{
+	//	auto rowBounds = mainbounds.removeFromTop(rowHeight);
+	//	auto leftBox = rowBounds.removeFromLeft(colWidth);
+	//	auto rightBox = rowBounds.reduced(PANEL_MARGIN);
+
+	//	vibratoParamsComponent.setBounds(leftBox);
+
+	//}
+
+
+	//{
+	//	auto rowBounds = mainbounds.removeFromTop(rowHeight);
+	//	auto leftBox = rowBounds.removeFromLeft(colWidth).reduced(PANEL_MARGIN);
+	//	auto rightBox = rowBounds.reduced(PANEL_MARGIN);
+
+
+	//	sweepParamsComponent.setBounds(leftBox);
+	//	voicingParamsComponent.setBounds(leftBox);
+	//	//midiEchoParamsComponent.setBounds(leftBox);
+
+	//}
+	//{
+	//	auto leftBox = mainbounds.removeFromLeft(colWidth).reduced(PANEL_MARGIN);
+	//	auto rightBox = mainbounds.reduced(PANEL_MARGIN);
+
+	//	filterParamsComponent.setBounds(rightBox);
+	//	optionsParamsComponent.setBounds(rightBox);
+	//}
+
 
 	if (CycleButton.button.getToggleState() == true)
 	{
@@ -358,7 +382,7 @@ void EditorGUI::buttonClicked(Button* button) {
 
 		sweepParamsComponent.setVisible(true);
 		vibratoParamsComponent.setVisible(true);
-		midiEchoParamsComponent.setVisible(true);
+		//midiEchoParamsComponent.setVisible(true);
 		filterParamsComponent.setVisible(true);
 		voicingParamsComponent.setVisible(true);
 		optionsParamsComponent.setVisible(true);
