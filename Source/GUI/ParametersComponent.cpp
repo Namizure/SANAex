@@ -280,7 +280,7 @@ static void paintHeaderVoicing(Graphics& g, Rectangle<int> bounds, std::string t
 
 
 		// outside
-		g.setColour(Colour(147, 145, 150));
+		g.setColour(Colour(147, 145, 150).withAlpha(0.0f));
 		g.fillRoundedRectangle(x, y, width, height, outerCornerSize);
 
 
@@ -608,8 +608,17 @@ void SweepParametersComponent::resized() {
 		float alpha = isEditable() ? 1.0f : 0.4f;
 		timeSlider.setAlpha(alpha);
 	}
-	sweepSwitchSelector.setBounds(bounds.removeFromTop(compHeight * 0.6f));
-	timeSlider.setBounds(bounds.removeFromTop(compHeight));
+
+	{
+
+		int margin = 30;
+		int y = -18;
+		sweepSwitchSelector.setBounds(bounds.removeFromTop(compHeight * 0.3f).translated(25, -4));
+		timeSlider.setBounds(bounds.removeFromTop(compHeight).reduced(margin, 10).translated(0, y));
+
+
+
+	}
 }
 
 void SweepParametersComponent::timerCallback() {
@@ -701,7 +710,7 @@ static void paintHeaderVibrato(Graphics& g, Rectangle<int> bounds, std::string t
 	g.fillRoundedRectangle(x + thickness - 4,
 		innerY,
 		width - (thickness * 1.5f),
-		155,
+		189,
 		innerCornerSize);
 
 	// text
@@ -749,7 +758,7 @@ void VibratoParametersComponent::paint(Graphics& g) {
 }
 
 void VibratoParametersComponent::resized() {
-	float rowSize = 14.0f;
+	float rowSize = 11.0f;
 	float divide = 1.0f / rowSize;
 	std::int32_t compHeight = std::int32_t((getHeight() - HEADER_HEIGHT) * divide);
 	Rectangle<int> bounds = getLocalBounds();
@@ -763,7 +772,7 @@ void VibratoParametersComponent::resized() {
 	}
 
 	{
-		auto b = bounds.removeFromTop(compHeight);
+		auto b = bounds.removeFromTop(compHeight - 9);
 		float startX = 10.0f;
 		float headerWidth = getWidth() - 15.0f;
 		float textSectionWidth = headerWidth / 6.0f;
@@ -777,9 +786,10 @@ void VibratoParametersComponent::resized() {
 	}
 
 	int margin = 30;
-	amountSlider.setBounds(bounds.removeFromTop(compHeight).reduced(margin, 0));
-	speedSlider.setBounds(bounds.removeFromTop(compHeight).reduced(margin, 0));
-	attackDeleyTimeSlider.setBounds(bounds.removeFromTop(compHeight).reduced(margin, 0));
+	int y = 20;
+	amountSlider.setBounds(bounds.removeFromTop(compHeight).reduced(margin, 0).translated(0, y));
+	speedSlider.setBounds(bounds.removeFromTop(compHeight).reduced(margin, 0).translated(0, y));
+	attackDeleyTimeSlider.setBounds(bounds.removeFromTop(compHeight).reduced(margin, 0).translated(0, y));
 
 	if (_vibratoParamsPtr->VibratoAttackDeleySwitch->get() == true) {
 		attackDeleyTimeSlider.label.setText("Attack", dontSendNotification);
@@ -830,7 +840,7 @@ VoicingParametersComponent::VoicingParametersComponent(
 	VoicingParameters* voicingParams)
 	: _voicingParamsPtr(voicingParams),
 	voicingTypeSelector("VOICING", _voicingParamsPtr->VoicingSwitch, this),
-	stepTimeSlider("STEPTIME", "sec", _voicingParamsPtr->StepTime, this,
+	stepTimeSlider("STEP", "sec", _voicingParamsPtr->StepTime, this,
 		0.001f, 0.5f) {
 	addAndMakeVisible(voicingTypeSelector);
 	addAndMakeVisible(stepTimeSlider);
@@ -841,7 +851,7 @@ void VoicingParametersComponent::paint(Graphics& g) {
 }
 
 void VoicingParametersComponent::resized() {
-	float rowSize = 2.0f;
+	float rowSize = 3.0f;
 	float divide = 1.0f / rowSize;
 	std::int32_t compHeight =
 		std::int32_t((getHeight() - HEADER_HEIGHT) * divide);
@@ -862,8 +872,10 @@ void VoicingParametersComponent::resized() {
 		}
 		stepTimeSlider.setAlpha(alpha);
 	}
-	voicingTypeSelector.setBounds(bounds.removeFromTop(compHeight));
-	stepTimeSlider.setBounds(bounds.removeFromTop(compHeight));
+
+	int margin = 30;
+	voicingTypeSelector.setBounds(bounds.removeFromTop(compHeight).translated(25, -4));
+	stepTimeSlider.setBounds(bounds.removeFromTop(compHeight).reduced(margin, 10));
 }
 
 void VoicingParametersComponent::timerCallback() {

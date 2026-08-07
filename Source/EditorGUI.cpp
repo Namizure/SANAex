@@ -267,13 +267,14 @@ void EditorGUI::resized() {
 			vibratoParamsComponent.setBounds(fullLeftPanelArea);
 
 			int sweepHeight = 150;
-			auto sweepArea = fullLeftPanelArea.removeFromBottom(sweepHeight);
+			fullLeftPanelArea.removeFromBottom(0);
 
+			auto sweepArea = fullLeftPanelArea.removeFromBottom(sweepHeight);
 			sweepParamsComponent.setBounds(sweepArea);
 			sweepParamsComponent.toFront(false);
 
-			auto vibratoArea = fullLeftPanelArea.removeFromBottom(sweepHeight);
-			voicingParamsComponent.setBounds(vibratoArea);
+			auto voicingArea = fullLeftPanelArea.removeFromBottom(sweepHeight);
+			voicingParamsComponent.setBounds(voicingArea.translated(0, 34));
 			voicingParamsComponent.toFront(false);
 		}
 	}

@@ -80,7 +80,7 @@ private:
 
 	SweepParameters* _sweepParamsPtr;
 
-	TextSelectorSmall sweepSwitchSelector;
+	TextSelector sweepSwitchSelector;
 	TextSlider timeSlider;
 };
 
@@ -128,7 +128,7 @@ private:
 
 	VoicingParameters* _voicingParamsPtr;
 
-	TextSelectorSmall voicingTypeSelector;
+	TextSelector voicingTypeSelector;
 	TextSlider stepTimeSlider;
 };
 
