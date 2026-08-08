@@ -28,7 +28,7 @@ public:
 	MidiKeyboardState& getKeyboardState() { return keyboardState; }
 	AudioBufferQueue<float>& getAudioBufferQueue() { return scopeDataQueue; }
 
-	const StringArray SWEEP_SWITCH{ "OFF", "Positive", "Negative" };
+	const StringArray SWEEP_SWITCH{ "OFF", "POSITIVE", "NEGATIVE" };
 	const StringArray VOICING_SWITCH{ "POLY", "MONO", "PORTAMENTO" };
 
 	ChipOscillatorParameters chipOscParameters;

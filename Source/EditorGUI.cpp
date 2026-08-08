@@ -277,37 +277,51 @@ void EditorGUI::resized() {
 			voicingParamsComponent.setBounds(voicingArea.translated(0, 34));
 			voicingParamsComponent.toFront(false);
 		}
+
+
+		//{
+		//	auto rowBounds = mainbounds.removeFromTop(rowHeight);
+		//	auto leftBox = rowBounds.removeFromLeft(colWidth);
+		//	auto rightBox = rowBounds.reduced(PANEL_MARGIN);
+
+		//	vibratoParamsComponent.setBounds(leftBox);
+
+		//}
+
+
+
+			//Rectangle<int> rightArea = mainbounds.reduced(PANEL_MARGIN);
+
+			//auto topArea = rightArea.removeFromTop(rightArea.getHeight() / 2);
+			//auto bottomArea = rightArea;
+
+			//optionsParamsComponent.setBounds(topArea);
+			//filterParamsComponent.setBounds(bottomArea);
+
+			//midiEchoParamsComponent.setBounds(leftBox);
+
+
+
+		{
+
+			Rectangle<int> rightArea = mainbounds.reduced(PANEL_MARGIN);
+			auto fullRightPanelArea = rightArea.reduced(PANEL_MARGIN);
+			optionsParamsComponent.setBounds(fullRightPanelArea);
+
+			int sweepHeight = 290;
+			fullRightPanelArea.removeFromBottom(0);
+
+			auto sweepArea = fullRightPanelArea.removeFromBottom(sweepHeight);
+			filterParamsComponent.setBounds(sweepArea);
+			filterParamsComponent.toFront(false);
+
+			//auto voicingArea = fullRightPanelArea.removeFromBottom(sweepHeight);
+			//filterParamsComponent.setBounds(voicingArea.translated(0, 34));
+			//filterParamsComponent.toFront(false);
+
+		}
+
 	}
-
-	//{
-	//	auto rowBounds = mainbounds.removeFromTop(rowHeight);
-	//	auto leftBox = rowBounds.removeFromLeft(colWidth);
-	//	auto rightBox = rowBounds.reduced(PANEL_MARGIN);
-
-	//	vibratoParamsComponent.setBounds(leftBox);
-
-	//}
-
-
-	//{
-	//	auto rowBounds = mainbounds.removeFromTop(rowHeight);
-	//	auto leftBox = rowBounds.removeFromLeft(colWidth).reduced(PANEL_MARGIN);
-	//	auto rightBox = rowBounds.reduced(PANEL_MARGIN);
-
-
-	//	sweepParamsComponent.setBounds(leftBox);
-	//	voicingParamsComponent.setBounds(leftBox);
-	//	//midiEchoParamsComponent.setBounds(leftBox);
-
-	//}
-	//{
-	//	auto leftBox = mainbounds.removeFromLeft(colWidth).reduced(PANEL_MARGIN);
-	//	auto rightBox = mainbounds.reduced(PANEL_MARGIN);
-
-	//	filterParamsComponent.setBounds(rightBox);
-	//	optionsParamsComponent.setBounds(rightBox);
-	//}
-
 
 	if (CycleButton.button.getToggleState() == true)
 	{

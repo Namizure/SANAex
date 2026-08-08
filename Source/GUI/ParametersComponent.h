@@ -305,8 +305,8 @@ private:
 
 	FilterParameters* _filterParamsPtr;
 
-	SwitchButton hiCutSwitch;
-	SwitchButton lowCutSwitch;
+	FilterButton hiCutSwitch;
+	FilterButton lowCutSwitch;
 
 	TextSlider hicutFreqSlider;
 	TextSlider lowcutFreqSlider;

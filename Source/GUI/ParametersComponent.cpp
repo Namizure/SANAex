@@ -649,7 +649,7 @@ bool SweepParametersComponent::isEditable() {
 
 
 
-static void paintHeaderVibrato(Graphics& g, Rectangle<int> bounds, std::string text) {
+static void paintHeaderVibrato(Graphics& g, Rectangle<int> bounds, std::string text, int innerboxheight, bool hasoutline, bool istop) {
 	auto x = 10.0f;
 	auto y = (float)HEADER_HEIGHT - 2.0f;
 	auto width = (float)bounds.getWidth() - 15.0f;
@@ -660,57 +660,63 @@ static void paintHeaderVibrato(Graphics& g, Rectangle<int> bounds, std::string t
 	auto innerCornerSize = 10.0f;
 
 	// shadow
-	juce::Path outerpath;
-	outerpath.addRoundedRectangle(x, y, width, height, outerCornerSize);
-	juce::DropShadow shadow(juce::Colours::black.withAlpha(0.7f), 18, juce::Point<int>(0, 0));
-	shadow.drawForPath(g, outerpath);
 
 	// grey rectangle
-	g.setColour(Colour(147, 145, 150));
-	g.fillRoundedRectangle(x, y, width, height, outerCornerSize);
+	if (istop) {
+		juce::Path outerpath;
+		outerpath.addRoundedRectangle(x, y, width, height, outerCornerSize);
+		juce::DropShadow shadow(juce::Colours::black.withAlpha(0.7f), 18, juce::Point<int>(0, 0));
+		shadow.drawForPath(g, outerpath);
 
-	// start of bevel effect
-	auto highlightCol = juce::Colour(206, 203, 210);
-	auto transparentCol = highlightCol.withAlpha(0.0f);
-	float fade = 20.0f;
+		g.setColour(Colour(147, 145, 150));
+		g.fillRoundedRectangle(x, y, width, height, outerCornerSize);
 
-	juce::Path leftEdge;
-	leftEdge.startNewSubPath(x + 1, y + height - outerCornerSize);
-	leftEdge.lineTo(x + 1, y + outerCornerSize + 1);
+		// start of bevel effect
+		auto highlightCol = juce::Colour(206, 203, 210);
+		auto transparentCol = highlightCol.withAlpha(0.0f);
+		float fade = 20.0f;
 
-	juce::ColourGradient leftGrad(
-		transparentCol, x + 1, y + height - outerCornerSize,
-		highlightCol, x + 1, y + height - outerCornerSize - fade,
-		false);
+		juce::Path leftEdge;
+		leftEdge.startNewSubPath(x + 1, y + height - outerCornerSize);
+		leftEdge.lineTo(x + 1, y + outerCornerSize + 1);
 
-	g.setGradientFill(leftGrad);
-	g.strokePath(leftEdge, juce::PathStrokeType(1.f));
+		juce::ColourGradient leftGrad(
+			transparentCol, x + 1, y + height - outerCornerSize,
+			highlightCol, x + 1, y + height - outerCornerSize - fade,
+			false);
 
-	juce::Path corner;
-	corner.addArc(x + 1, y + 1, outerCornerSize * 2.0f, outerCornerSize * 2.0f,
-		-juce::MathConstants<float>::halfPi, 0.0f, true);
-	g.setColour(highlightCol);
-	g.strokePath(corner, juce::PathStrokeType(1.f));
+		g.setGradientFill(leftGrad);
+		g.strokePath(leftEdge, juce::PathStrokeType(1.f));
 
-	juce::Path topEdge;
-	topEdge.startNewSubPath(x + outerCornerSize + 1, y + 1);
-	topEdge.lineTo(x + width - outerCornerSize, y + 1);
+		juce::Path corner;
+		corner.addArc(x + 1, y + 1, outerCornerSize * 2.0f, outerCornerSize * 2.0f,
+			-juce::MathConstants<float>::halfPi, 0.0f, true);
+		g.setColour(highlightCol);
+		g.strokePath(corner, juce::PathStrokeType(1.f));
 
-	juce::ColourGradient topGrad(
-		highlightCol, x + width - outerCornerSize - fade, y + 1,
-		transparentCol, x + width - outerCornerSize, y + 1,
-		false);
+		juce::Path topEdge;
+		topEdge.startNewSubPath(x + outerCornerSize + 1, y + 1);
+		topEdge.lineTo(x + width - outerCornerSize, y + 1);
 
-	g.setGradientFill(topGrad);
-	g.strokePath(topEdge, juce::PathStrokeType(1.5f));
-	// end of bevel 
+		juce::ColourGradient topGrad(
+			highlightCol, x + width - outerCornerSize - fade, y + 1,
+			transparentCol, x + width - outerCornerSize, y + 1,
+			false);
 
+		g.setGradientFill(topGrad);
+		g.strokePath(topEdge, juce::PathStrokeType(1.5f));
+		// end of bevel 
+	}
+	else {
+		g.setColour(Colour(147, 145, 150).withAlpha(0.0f));
+		g.fillRoundedRectangle(x, y, width, height, outerCornerSize);
+	}
 	float innerY = y + thickness + 15.0f;
 	g.setColour(Colour(32, 33, 40));
 	g.fillRoundedRectangle(x + thickness - 4,
 		innerY,
 		width - (thickness * 1.5f),
-		189,
+		innerboxheight,
 		innerCornerSize);
 
 	// text
@@ -724,14 +730,18 @@ static void paintHeaderVibrato(Graphics& g, Rectangle<int> bounds, std::string t
 
 	float dividerX = x + textSectionWidth + 30;
 
-	g.setColour(Colour(15, 19, 21));
-	g.fillRect(dividerX + 1.0f, y, 1.0f, topBarHeight);
 
-	g.setColour(Colour(99, 97, 102));
-	g.fillRect(dividerX, y, 1.0f, topBarHeight);
+	if (hasoutline) {
 
-	g.setColour(Colour(177, 174, 180));
-	g.fillRect(dividerX + 2.0f, y, 1.0f, topBarHeight);
+		g.setColour(Colour(99, 97, 102));
+		g.drawLine(dividerX - 1.0f, y, dividerX - 1.0f, y + topBarHeight, 1.0f);
+
+		g.setColour(Colour(15, 19, 21));
+		g.drawLine(dividerX, y, dividerX, y + topBarHeight, 1.0f);
+
+		g.setColour(Colour(177, 174, 180));
+		g.drawLine(dividerX + 1.0f, y, dividerX + 1.0f, y + topBarHeight, 1.0f);
+	}
 }
 
 
@@ -754,7 +764,7 @@ VibratoParametersComponent::VibratoParametersComponent(
 }
 
 void VibratoParametersComponent::paint(Graphics& g) {
-	paintHeaderVibrato(g, getLocalBounds(), "VIBRATO");
+	paintHeaderVibrato(g, getLocalBounds(), "VIBRATO", 189, true, true);
 }
 
 void VibratoParametersComponent::resized() {
@@ -792,10 +802,10 @@ void VibratoParametersComponent::resized() {
 	attackDeleyTimeSlider.setBounds(bounds.removeFromTop(compHeight).reduced(margin, 0).translated(0, y));
 
 	if (_vibratoParamsPtr->VibratoAttackDeleySwitch->get() == true) {
-		attackDeleyTimeSlider.label.setText("Attack", dontSendNotification);
+		attackDeleyTimeSlider.label.setText("ATT", dontSendNotification);
 	}
 	else {
-		attackDeleyTimeSlider.label.setText("Delay", dontSendNotification);
+		attackDeleyTimeSlider.label.setText("DEL", dontSendNotification);
 	}
 }
 
@@ -902,8 +912,8 @@ OptionsParametersComponent::OptionsParametersComponent(
 	OptionsParameters* optionsParams
 )
 	: _optionsParamsPtr(optionsParams),
-	pitchStandardSlider("Tunes", "", _optionsParamsPtr->PitchStandard, this),
-	pitchBendRangeSlider("PB Range", "", _optionsParamsPtr->PitchBendRange, this), IncButtonLook()
+	pitchStandardSlider("TUNE", "", _optionsParamsPtr->PitchStandard, this),
+	pitchBendRangeSlider("PB RANGE", "", _optionsParamsPtr->PitchBendRange, this), IncButtonLook()
 {
 
 	pitchStandardSlider.setLookAndFeel(&IncButtonLook);
@@ -917,16 +927,25 @@ OptionsParametersComponent::~OptionsParametersComponent()
 }
 
 void OptionsParametersComponent::paint(Graphics& g) {
-	paintHeaderEffects(g, getLocalBounds(), "OPTIONS");
+	paintHeaderVibrato(g, getLocalBounds(), "OPTIONS", 155, false, true);
 }
 
 void OptionsParametersComponent::resized() {
+
+
+	float rowSize = 10.0f;
+	float divide = 1.0f / rowSize;
+	std::int32_t compHeight =
+		std::int32_t((getHeight() - HEADER_HEIGHT) * divide);
+
 	Rectangle<int> bounds = getLocalBounds();
 	bounds.removeFromTop(HEADER_HEIGHT);
-	std::int32_t compHeight = (getHeight() - HEADER_HEIGHT) / 2.0f;
+	//std::int32_t compHeight = (getHeight() - HEADER_HEIGHT) / 2.0f;
 
-	pitchStandardSlider.setBounds(bounds.removeFromTop(compHeight));
-	pitchBendRangeSlider.setBounds(bounds.removeFromTop(compHeight));
+
+	int margin = 30;
+	pitchStandardSlider.setBounds(bounds.removeFromTop(compHeight).reduced(margin, 10).translated(0, 52));
+	pitchBendRangeSlider.setBounds(bounds.removeFromTop(compHeight).reduced(margin, 10).translated(0, 52));
 }
 
 void OptionsParametersComponent::timerCallback() {
@@ -1391,10 +1410,10 @@ void WaveformMemoryParametersComponent::setWaveformIndex(int index) {
 FilterParametersComponent::FilterParametersComponent(FilterParameters* filterParams)
 	: BaseComponent(),
 	_filterParamsPtr(filterParams),
-	hiCutSwitch("HiCut: ON / OFF", _filterParamsPtr->HicutEnable, this),
-	lowCutSwitch("LowCut: ON / OFF", _filterParamsPtr->LowcutEnable, this),
-	hicutFreqSlider("hicut", "Hz", _filterParamsPtr->HicutFreq, this, 0.1f, 2000.0f),
-	lowcutFreqSlider("lowcut", "Hz", _filterParamsPtr->LowcutFreq, this, 0.1f, 2000.0f) {
+	hiCutSwitch("HICUT", _filterParamsPtr->HicutEnable, this),
+	lowCutSwitch("LOWCUT", _filterParamsPtr->LowcutEnable, this),
+	hicutFreqSlider("", "Hz", _filterParamsPtr->HicutFreq, this, 0.1f, 2000.0f),
+	lowcutFreqSlider("", "Hz", _filterParamsPtr->LowcutFreq, this, 0.1f, 2000.0f) {
 	addAndMakeVisible(hiCutSwitch);
 	addAndMakeVisible(lowCutSwitch);
 	addAndMakeVisible(hicutFreqSlider);
@@ -1402,11 +1421,11 @@ FilterParametersComponent::FilterParametersComponent(FilterParameters* filterPar
 }
 
 void FilterParametersComponent::paint(Graphics& g) {
-	paintHeaderVoicing(g, getLocalBounds(), "");
+	paintHeaderVibrato(g, getLocalBounds(), "FILTER", 225, false, false);
 }
 
 void FilterParametersComponent::resized() {
-	float rowSize = 4.0f;
+	float rowSize = 6.0f;
 	float divide = 1.0f / rowSize;
 	std::int32_t compHeight =
 		std::int32_t((getHeight() - HEADER_HEIGHT) * divide);
@@ -1423,10 +1442,12 @@ void FilterParametersComponent::resized() {
 		lowcutFreqSlider.setAlpha(alpha);
 	}
 
-	hiCutSwitch.setBounds(bounds.removeFromTop(compHeight));
-	hicutFreqSlider.setBounds(bounds.removeFromTop(compHeight));
-	lowCutSwitch.setBounds(bounds.removeFromTop(compHeight));
-	lowcutFreqSlider.setBounds(bounds.removeFromTop(compHeight));
+	int margin = 30;
+
+	hiCutSwitch.setBounds(bounds.removeFromTop(compHeight).reduced(margin, 10).translated(0, 52));
+	hicutFreqSlider.setBounds(bounds.removeFromTop(compHeight).reduced(margin, 10).translated(0, 52));
+	lowCutSwitch.setBounds(bounds.removeFromTop(compHeight).reduced(margin, 10).translated(0, 52));
+	lowcutFreqSlider.setBounds(bounds.removeFromTop(compHeight).reduced(margin, 10).translated(0, 52));
 }
 
 void FilterParametersComponent::timerCallback() {

@@ -384,12 +384,66 @@ private:
 };
 
 
+class CustomTextSlider : public juce::LookAndFeel_V4 {
+public:
+	CustomTextSlider() {
+		setColour(juce::Slider::textBoxBackgroundColourId, Colour(19, 19, 19));
+		setColour(juce::Slider::textBoxTextColourId, juce::Colours::white);
+		setColour(juce::TextButton::buttonColourId, juce::Colour(21, 22, 27));
+		setColour(juce::TextButton::textColourOffId, Colour(98, 100, 110));
+	}
+
+	void drawLabel(juce::Graphics& g, juce::Label& label) override {
+		auto bounds = label.getLocalBounds().toFloat();
+		// background
+		g.setColour(Colour(19, 19, 19));
+		g.fillRoundedRectangle(bounds, 10.f);
+		// outline
+		g.setColour(juce::Colours::white);
+		g.drawRoundedRectangle(bounds.reduced(1.5f / 2.0f), 10.f, 1.f);
+		//text
+		g.setColour(juce::Colours::white);
+		g.setFont(ProjectFonts::semiboldFont(18));
+		g.setOpacity(label.isEnabled() ? 1.0f : 0.5f);
+
+		g.drawFittedText(label.getText(),
+			label.getLocalBounds().reduced(1, 2),
+			label.getJustificationType(),
+			juce::jmax(1, (int)((float)label.getHeight() / g.getCurrentFont().getHeight())),
+			label.getMinimumHorizontalScale());
+	}
+
+	juce::Slider::SliderLayout getSliderLayout(juce::Slider& slider) override {
+		if (slider.getSliderStyle() == juce::Slider::IncDecButtons) {
+			juce::Slider::SliderLayout layout;
+			auto bounds = slider.getLocalBounds();
+
+			int textBoxWidth = 100;
+			int buttonWidth = 75;
+			int gap = 8;
+
+			layout.textBoxBounds = bounds.removeFromLeft(textBoxWidth);
+
+			bounds.removeFromLeft(gap);
+			layout.sliderBounds = bounds.removeFromLeft(buttonWidth * 2);
+
+			return layout;
+		}
+		return juce::LookAndFeel_V4::getSliderLayout(slider);
+	}
+};
+
 class TextSliderIncDec : public TextSlider {
 public:
+	CustomTextSlider customlook;
+
 	TextSliderIncDec(std::string labelName, std::string unit, int value,
 		int start, int end, Slider::Listener* listener)
 		: TextSlider(labelName, unit, value, start, end, listener, 1.0f) {
+
+		juce::Font(ProjectFonts::semiboldFont(26.f));
 		slider.setSliderStyle(Slider::SliderStyle::IncDecButtons);
+		slider.setLookAndFeel(&customlook);
 	};
 
 	TextSliderIncDec(std::string labelName, std::string unit,
@@ -397,7 +451,19 @@ public:
 		: TextSliderIncDec(labelName, unit, param->get(),
 			param->getRange().getStart(),
 			param->getRange().getEnd(), listener) {
+
 	};
+
+	void resized() override {
+		juce::Rectangle<int> bounds = getLocalBounds();
+		label.setBounds(bounds.removeFromLeft(75));
+		slider.setBounds(bounds);
+	}
+
+
+	~TextSliderIncDec() override {
+		slider.setLookAndFeel(nullptr);
+	}
 
 private:
 	TextSliderIncDec();
@@ -794,6 +860,103 @@ public:
 private:
 	SwitchButton();
 };
+
+
+
+
+
+
+
+// special buttons for wavepatterns
+class FilterButtonLook : public juce::LookAndFeel_V4 {
+public:
+	FilterButtonLook() {
+		setColour(juce::ToggleButton::textColourId, juce::Colour(32, 33, 40));
+		setColour(juce::ToggleButton::tickColourId, juce::Colour(200, 48, 48));
+		setColour(juce::ToggleButton::tickDisabledColourId, juce::Colour(32, 33, 40));
+	}
+
+	void drawToggleButton(juce::Graphics& g, juce::ToggleButton& button, bool shouldDrawButtonAsHighlighted,
+		bool shouldDrawButtonAsDown) override {
+		auto bounds = button.getLocalBounds().toFloat();
+
+		// circle congif
+		float circleSize = 15.0f;
+		float circleX = 8.0f;
+		float circleY = (bounds.getHeight() - circleSize) / 2.0f;
+
+		if (button.getToggleState()) {
+			// background circle
+			g.setColour(juce::Colour(98, 100, 110));
+			g.fillEllipse(circleX, circleY, circleSize, circleSize);
+
+			// ontop circle
+			g.setColour(juce::Colour(200, 48, 48));
+			g.fillEllipse(circleX + 2.0f, circleY + 2.0f, circleSize - 4.0f, circleSize - 4.0f);
+		}
+		else {
+			// background circle
+			g.setColour(juce::Colour(98, 100, 110));
+			g.fillEllipse(circleX, circleY, circleSize, circleSize);
+		}
+		// fontt
+		g.setColour(juce::Colour(98, 100, 110));
+		g.setFont(ProjectFonts::boldFont(26));
+		auto textArea = bounds.withTrimmedLeft(circleX + circleSize + 6.0f);
+		g.drawText(button.getButtonText(), textArea, juce::Justification::centredLeft, true);
+
+
+	}
+};
+
+class FilterButton : public Component {
+public:
+	ToggleButton button;
+	FilterButtonLook lnfbutton;
+
+	FilterButton(std::string label, AudioParameterBool* param, ToggleButton::Listener* listener)
+	{
+		button.setLookAndFeel(&lnfbutton);
+		button.setButtonText(label);
+
+		if (param != nullptr)
+			button.setToggleState(param->get(), dontSendNotification);
+
+		button.addListener(listener);
+		addAndMakeVisible(button);
+	};
+
+	~FilterButton()
+	{
+		button.setLookAndFeel(nullptr);
+	}
+
+	void resized() override
+	{
+		button.setBounds(getLocalBounds());
+	};
+
+	void setToggleState(bool flag)
+	{
+		button.setToggleState(flag, dontSendNotification);
+	};
+
+	bool getToggleState()
+	{
+		return button.getToggleState();
+	}
+
+	void addListener(Button::Listener* listener)
+	{
+		button.addListener(listener);
+	};
+
+
+private:
+	FilterButton();
+};
+
+
 
 
 
