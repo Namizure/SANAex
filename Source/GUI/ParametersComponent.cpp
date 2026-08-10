@@ -1031,7 +1031,7 @@ ArpSequencerComponent::ArpSequencerComponent(ArpParameters* arpParameters)
 	_arpParameters(arpParameters),
 	_enableSwitch("ON", _arpParameters->ArpEnabled, this),
 	_loopSwitch("LOOP", _arpParameters->LoopEnabled, this),
-	_stepTimeSlider("LENGTH", "sec", _arpParameters->ArpStepTime, this, MIN_DELTA, 0.25f),
+	_stepTimeSlider("DURATION", "sec", _arpParameters->ArpStepTime, this, MIN_DELTA, 0.25f),
 	_rangeSliders(_arpParameters) {
 
 	addAndMakeVisible(_enableSwitch);

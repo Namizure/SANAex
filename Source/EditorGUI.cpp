@@ -9,16 +9,16 @@ namespace {
 	const float KEY_SCROLL_WIDTH = 32.0f;
 	const std::int32_t PANEL_MARGIN = 3;
 
-}  // namespace
+}
 
 EditorGUI::EditorGUI(PluginProcessor& p)
 	: AudioProcessorEditor(&p),
 	processor(p),
 	keyboardComponent(p.getKeyboardState(),
 		MidiKeyboardComponent::Orientation::horizontalKeyboard),
-	OscButton("WAVE", this),
+	OscButton("WAVES", this),
 	CycleButton("CYCLES", this),
-	ArpButton("ARP", this),
+	ArpButton("ARPS", this),
 	EffectButton("EFFECTS", this),
 
 
@@ -62,6 +62,8 @@ EditorGUI::EditorGUI(PluginProcessor& p)
 			addAndMakeVisible(keyboardComponent);
 			keyboardComponent.setKeyWidth(KEY_WIDTH);
 			keyboardComponent.setScrollButtonWidth(KEY_SCROLL_WIDTH);
+			keyboardComponent.setColour(juce::MidiKeyboardComponent::keyDownOverlayColourId, Colour(200, 48, 48));
+			keyboardComponent.setColour(juce::MidiKeyboardComponent::mouseOverKeyOverlayColourId, Colour(190, 187, 194));
 
 
 

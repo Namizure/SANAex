@@ -225,28 +225,22 @@ private:
 
 
 
-
-
-
 class CustomSmallSliderLookAndFeel : public juce::LookAndFeel_V4 {
 public:
 	CustomSmallSliderLookAndFeel() {
-		setColour(juce::Slider::backgroundColourId, juce::Colour(255, 255, 255));
-		setColour(juce::Slider::thumbColourId, juce::Colours::white);
-		setColour(juce::Slider::textBoxTextColourId, juce::Colours::white);
+		setColour(juce::Slider::backgroundColourId, juce::Colour(19, 19, 19));
 		setColour(juce::Slider::trackColourId, juce::Colour(200, 48, 48));
 	}
 
 	void drawLabel(juce::Graphics& g, juce::Label& label) override {
 		auto bounds = label.getLocalBounds().toFloat();
-		// background
-		g.setColour(Colour(19, 19, 19));
+		g.setColour(label.findColour(juce::Label::backgroundColourId));
 		g.fillRoundedRectangle(bounds, 3.f);
-		// outline
-		g.setColour(juce::Colours::white);
+
+		g.setColour(label.findColour(juce::Label::outlineColourId));
 		g.drawRoundedRectangle(bounds.reduced(1.5f / 2.0f), 3.f, 1.f);
-		//text
-		g.setColour(juce::Colours::white);
+
+		g.setColour(label.findColour(juce::Label::textColourId));
 		g.setFont(ProjectFonts::semiboldFont(18));
 		g.setOpacity(label.isEnabled() ? 1.0f : 0.5f);
 
@@ -257,53 +251,34 @@ public:
 			label.getMinimumHorizontalScale());
 	}
 
-
 	void drawLinearSlider(juce::Graphics& g, int x, int y, int width, int height,
 		float sliderPos, float minSliderPos, float maxSliderPos,
 		const juce::Slider::SliderStyle style, juce::Slider& slider) override {
 
-		// slider
-		float trackHeight = 6.0f;
-		float trackRadius = trackHeight / 2.0f;
-		float trackY = (float)y + ((float)height - trackHeight) / 2.0f;
+		if (style == juce::Slider::LinearBar) {
+			juce::Rectangle<float> bounds((float)x, (float)y, (float)width, (float)height);
+			float cornerSize = 3.f;
 
-		// white part
-		g.setColour(slider.findColour(juce::Slider::backgroundColourId));
-		g.fillRoundedRectangle((float)x, trackY, (float)width, trackHeight, trackRadius);
+			g.setColour(slider.findColour(juce::Slider::backgroundColourId));
+			g.fillRoundedRectangle(bounds, cornerSize);
 
-		// red part
-		g.setColour(slider.findColour(juce::Slider::trackColourId));
-		g.fillRoundedRectangle((float)x, trackY, sliderPos - (float)x, trackHeight, trackRadius);
+			float padding = 2.0f;
+			juce::Rectangle<float> innerBounds = bounds.reduced(padding);
+			float innerCornerSize = 1.5f;
 
+			if (sliderPos > innerBounds.getX()) {
+				g.saveState();
+				juce::Path clipPath;
+				clipPath.addRoundedRectangle(innerBounds, innerCornerSize);
+				g.reduceClipRegion(clipPath);
 
-		// thumb (circle in the middle)(
-		float thumbWidth = 9.0f;
-		float thumbHeight = 16.0f;
+				g.setColour(slider.findColour(juce::Slider::trackColourId));
+				g.fillRect(innerBounds.withWidth(sliderPos - innerBounds.getX()));
 
-		juce::Rectangle<float> thumbRect(sliderPos - (thumbWidth / 2.0f),
-			(float)y + ((float)height - thumbHeight) / 2.0f,
-			thumbWidth / 1.15, thumbHeight);
+				g.restoreState();
+			}
+		}
 
-		float cornerSize = 2.f;
-
-		// around
-		g.setColour(juce::Colours::white);
-		g.fillRoundedRectangle(thumbRect, cornerSize);
-
-		// middle
-		g.setColour(juce::Colour(20, 20, 24));
-		g.fillRoundedRectangle(thumbRect.reduced(1.25f), 0.f);
-
-
-		// middle line
-		g.setColour(juce::Colours::white);
-		float lineWidth = 1.f;
-
-		g.fillRoundedRectangle(thumbRect.getCentreX() - (lineWidth / 2.0f),
-			thumbRect.getY() + 4.0f,
-			lineWidth,
-			thumbRect.getHeight() - 8.0f,
-			0.5f);
 	}
 };
 
@@ -321,11 +296,9 @@ public:
 	TextSliderSmall(std::string labelName, std::string unit, float value, float start,
 		float end, Slider::Listener* listener, float degree = 0.1f,
 		float pivot = NULL)
-		: slider(Slider::SliderStyle::LinearBar,
-			Slider::TextEntryBoxPosition::TextBoxLeft) {
+		: slider(Slider::SliderStyle::LinearBar, Slider::TextEntryBoxPosition::TextBoxLeft) {
 
 		slider.setLookAndFeel(&CustomSliderLookAndFeel);
-
 		slider.setRange(start, end, degree);
 		slider.setValue(value, dontSendNotification);
 		slider.setTextValueSuffix(std::string(" ") + unit);
@@ -335,8 +308,14 @@ public:
 			slider.setSkewFactorFromMidPoint(pivot);
 		}
 
+		slider.setColour(juce::Slider::textBoxBackgroundColourId, juce::Colours::transparentBlack);
+		slider.setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::white);
+		slider.setColour(juce::Slider::textBoxTextColourId, juce::Colours::white);
+
 		label.setFont(ProjectFonts::boldFont(20));
 		label.setColour(juce::Label::textColourId, juce::Colour(32, 33, 40));
+		label.setColour(juce::Label::backgroundColourId, juce::Colours::transparentBlack);
+		label.setColour(juce::Label::outlineColourId, juce::Colours::transparentBlack);
 
 		label.setText(labelName, dontSendNotification);
 		label.setJustificationType(Justification::centred);
@@ -1393,17 +1372,22 @@ public:
 
 
 	virtual void paint(Graphics& g) override {
-		// update slider Params
-
-		juce::ColourGradient gradient(
-			juce::Colour(51, 51, 54), 0.0f, 150.0f,
-			juce::Colour(84, 55, 59), 0.0f, 350.0f,
-			false);
-		g.setGradientFill(gradient);
+		// background
+		if (*_chipOscParamsPtr->OscWaveType >= 16) {
+			juce::ColourGradient gradient(
+				juce::Colour(51, 51, 54), 0.0f, 150.0f,
+				juce::Colour(84, 55, 59), 0.0f, 350.0f,
+				false);
+			g.setGradientFill(gradient);
+		}
+		else {
+			juce::ColourGradient gradient(
+				juce::Colour(28, 28, 29), 0.0f, 150.0f,
+				juce::Colour(17, 20, 24).withAlpha(0.25f), 0.0f, 350.0f,
+				false);
+			g.setGradientFill(gradient);
+		}
 		g.fillAll();
-
-
-
 
 
 		for (auto* trail : _trails) {
@@ -1418,19 +1402,13 @@ public:
 			std::int32_t value = 15 - (std::int32_t)(point * 16.0 / compHeight);
 			_sampleSliders[index].setValue(value, dontSendNotification);
 			updateValue(index);
-
-
-
-
 		}
-		// repaint Sliders
+		// sliders
 		{
 			Rectangle<int> bounds = getLocalBounds();
 			float columnSize = (float)WAVESAMPLE_LENGTH;
 			float rowSize = (float)16;
 			float compWidth = getWidth();
-
-
 
 			// grid 1
 			for (auto i = 0; i <= 16; ++i) {
@@ -1452,19 +1430,12 @@ public:
 				Line<float> line(0.0f, p_y, (float)getWidth(), p_y);
 				g.setColour(Colour(20, 20, 20));
 				g.drawLine(line, 1.5f);
-
-
-
-
-
 			}
 			for (auto i = 0; i <= 8; ++i) {
 				float p_x = getWidth() * (0.125f) * i;
 				Line<float> line(p_x, 0.0f, p_x, (float)getHeight());
 				g.setColour(Colour(20, 20, 20));
 				g.drawLine(line, 1.5f);
-
-
 			}
 
 			/*if (_current) {
@@ -1478,7 +1449,7 @@ public:
 				g.drawText(labelText, textBounds, Justification::centredLeft, false);
 			}*/
 
-			// Draw Slider
+
 			for (auto i = 0; i < WAVESAMPLE_LENGTH; ++i) {
 				auto barHeight = getHeight() * (_sampleSliders[i].getValue() + 1.0f) / rowSize;
 				auto barWidth = compWidth / (float)WAVESAMPLE_LENGTH;
@@ -1491,11 +1462,10 @@ public:
 					g.setColour(Colour(200, 48, 48));
 				}
 				else {
-					g.setColour(Colour(164, 176, 181));
+					g.setColour(Colour(101, 101, 105));
 				}
 				g.fillRect(area2.reduced(0.5f));
 			}
-
 		}
 	};
 
@@ -1670,11 +1640,12 @@ public:
 					barColour = Colours::white;
 				}
 				else if (endStepIndex >= 0 && i > endStepIndex) {
-					barColour = Colours::blue;
+					barColour = Colour(110, 18, 29);
 				}
 
 				g.setColour(barColour);
 				g.fillRect(area2.reduced(0.5f));
+
 			}
 
 			// draw grid
@@ -1759,17 +1730,16 @@ private:
 			repaint();
 			return;
 		}
-		else {
-			auto* t = getTrail(e.source);
-			if (t == nullptr) {
-				t = new Trail(e.source);
-				t->path.startNewSubPath(e.position);
-				_trails.add(t);
-			}
-			t->pushPoint(e.position, e.mods, e.pressure);
-			repaint();
+
+		auto* t = getTrail(e.source);
+		if (t == nullptr) {
+			t = new Trail(e.source);
+			t->path.startNewSubPath(e.position);
+			_trails.add(t);
 		}
-	}
+		t->pushPoint(e.position, e.mods, e.pressure);
+		repaint();
+	};
 
 	virtual void mouseUp(const MouseEvent& e) override {
 		auto* t = getTrail(e.source);
@@ -1783,7 +1753,6 @@ private:
 		for (auto* trail : _trails) {
 			if (trail->source == source) return trail;
 		}
-
 		return nullptr;
 	};
 
@@ -1887,15 +1856,12 @@ public:
 					barColour = Colours::white;
 				}
 				else if (endStepIndex >= 0 && i > endStepIndex) {
-					barColour = Colours::black;
+					barColour = Colour(110, 18, 29);
 				}
 				g.setColour(barColour);
 				g.fillRect(area2.reduced(0.5f));
 			}
 			// draw grid
-
-
-
 			for (auto i = 1; i < 48; ++i) {
 				float p_y = getHeight() / 48.0f * i;
 				Line<float> line(0.0f, p_y, (float)getWidth(), p_y);
