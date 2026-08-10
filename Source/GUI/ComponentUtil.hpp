@@ -119,6 +119,10 @@ public:
 };
 
 
+
+
+
+
 class TextSlider : public Component, public juce::Slider::Listener {
 public:
 	int LOCAL_MARGIN = 2;
@@ -317,7 +321,7 @@ public:
 	TextSliderSmall(std::string labelName, std::string unit, float value, float start,
 		float end, Slider::Listener* listener, float degree = 0.1f,
 		float pivot = NULL)
-		: slider(Slider::SliderStyle::LinearHorizontal,
+		: slider(Slider::SliderStyle::LinearBar,
 			Slider::TextEntryBoxPosition::TextBoxLeft) {
 
 		slider.setLookAndFeel(&CustomSliderLookAndFeel);
@@ -468,6 +472,98 @@ public:
 private:
 	TextSliderIncDec();
 };
+
+
+class CustomTextButton : public juce::LookAndFeel_V4 {
+public:
+
+
+	CustomTextButton() {
+		setColour(juce::TextButton::buttonColourId, juce::Colour(147, 145, 150));
+		setColour(juce::TextButton::textColourOffId, juce::Colour(32, 33, 40));
+
+	}
+
+	juce::Font getTextButtonFont(juce::TextButton& button, int buttonHeight) override {
+		return ProjectFonts::boldFont(26.f);
+	}
+
+	void drawButtonBackground(juce::Graphics& g, juce::Button& button,
+		const juce::Colour& backgroundColour,
+		bool shouldDrawButtonAsHighlighted,
+		bool shouldDrawButtonAsDown) override
+	{
+		auto bounds = button.getLocalBounds().toFloat();
+
+		auto baseColour = juce::Colour(147, 145, 150);
+		if (shouldDrawButtonAsDown) {
+			baseColour = baseColour.darker(0.1f);
+		}
+		else if (shouldDrawButtonAsHighlighted) {
+			baseColour = baseColour.brighter(0.05f);
+		}
+
+		g.setColour(baseColour);
+		g.fillRoundedRectangle(bounds, 2.0f);
+
+		float strokeWidth = 1.5f;
+		auto strokeBounds = bounds.reduced(strokeWidth * 0.5f);
+
+		float x = strokeBounds.getX();
+		float y = strokeBounds.getY();
+		float width = strokeBounds.getWidth();
+		float height = strokeBounds.getHeight();
+
+		// bevel effect
+		juce::Path highlightPath;
+		highlightPath.startNewSubPath(x, y + height);
+		highlightPath.lineTo(x, y);
+		highlightPath.lineTo(x + width, y);
+
+
+		juce::Path shadowPath;
+		shadowPath.startNewSubPath(x + width, y);
+		shadowPath.lineTo(x + width, y + height);
+		shadowPath.lineTo(x, y + height);
+
+		juce::Colour lightColour = juce::Colour(206, 203, 210);
+		juce::Colour darkColour = juce::Colour(98, 97, 100);
+
+		g.setColour(shouldDrawButtonAsDown ? darkColour : lightColour);
+		g.strokePath(highlightPath, juce::PathStrokeType(strokeWidth));
+
+		g.setColour(shouldDrawButtonAsDown ? lightColour : darkColour);
+		g.strokePath(shadowPath, juce::PathStrokeType(strokeWidth));
+	}
+
+
+};
+
+class TextButtonSmall : public juce::TextButton {
+public:
+	CustomTextButton TextButtonLnF;
+
+	TextButtonSmall() : juce::TextButton() {
+		setLookAndFeel(&TextButtonLnF);
+		juce::Font(ProjectFonts::semiboldFont(26.f));
+	}
+
+	TextButtonSmall(const juce::String& labelName)
+		: juce::TextButton(labelName) {
+		setLookAndFeel(&TextButtonLnF);
+		juce::Font(ProjectFonts::semiboldFont(26.f));
+
+	}
+
+	~TextButtonSmall() override {
+		setLookAndFeel(nullptr);
+	}
+
+private:
+	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(TextButtonSmall)
+};
+
+
 
 class CustomComboBoxLookAndFeel : public juce::LookAndFeel_V4 {
 public:
@@ -880,29 +976,34 @@ public:
 		bool shouldDrawButtonAsDown) override {
 		auto bounds = button.getLocalBounds().toFloat();
 
-		// circle congif
-		float circleSize = 15.0f;
-		float circleX = 8.0f;
-		float circleY = (bounds.getHeight() - circleSize) / 2.0f;
+		// rectangle congif
+		float rectSize = 15.0f;
+		float rectX = 8.0f;
+		float rectY = (bounds.getHeight() - rectSize) / 2.0f;
 
-		if (button.getToggleState()) {
-			// background circle
+		if (button.getToggleState())
+		{
 			g.setColour(juce::Colour(98, 100, 110));
-			g.fillEllipse(circleX, circleY, circleSize, circleSize);
+			g.fillRect(rectX, rectY, rectSize, rectSize);
 
-			// ontop circle
+			g.setColour(juce::Colour(32, 33, 40));
+			g.fillRect(rectX + 1.0f, rectY + 1.0f, rectSize - 2.0f, rectSize - 2.0f);
+
 			g.setColour(juce::Colour(200, 48, 48));
-			g.fillEllipse(circleX + 2.0f, circleY + 2.0f, circleSize - 4.0f, circleSize - 4.0f);
+			g.fillRect(rectX + 3.0f, rectY + 3.0f, rectSize - 6.0f, rectSize - 6.0f);
 		}
 		else {
-			// background circle
 			g.setColour(juce::Colour(98, 100, 110));
-			g.fillEllipse(circleX, circleY, circleSize, circleSize);
+			g.fillRect(rectX, rectY, rectSize, rectSize);
+
+			g.setColour(juce::Colour(32, 33, 40));
+			g.fillRect(rectX + 1.0f, rectY + 1.0f, rectSize - 2.0f, rectSize - 2.0f);
+
 		}
 		// fontt
 		g.setColour(juce::Colour(98, 100, 110));
 		g.setFont(ProjectFonts::boldFont(26));
-		auto textArea = bounds.withTrimmedLeft(circleX + circleSize + 6.0f);
+		auto textArea = bounds.withTrimmedLeft(rectX + rectSize + 6.0f);
 		g.drawText(button.getButtonText(), textArea, juce::Justification::centredLeft, true);
 
 

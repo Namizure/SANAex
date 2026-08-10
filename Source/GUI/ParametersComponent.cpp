@@ -913,10 +913,10 @@ OptionsParametersComponent::OptionsParametersComponent(
 )
 	: _optionsParamsPtr(optionsParams),
 	pitchStandardSlider("TUNE", "", _optionsParamsPtr->PitchStandard, this),
-	pitchBendRangeSlider("PB RANGE", "", _optionsParamsPtr->PitchBendRange, this), IncButtonLook()
+	pitchBendRangeSlider("PB RANGE", "", _optionsParamsPtr->PitchBendRange, this)
 {
 
-	pitchStandardSlider.setLookAndFeel(&IncButtonLook);
+	//pitchStandardSlider.setLookAndFeel(&IncButtonLook);
 	addAndMakeVisible(pitchStandardSlider);
 	addAndMakeVisible(pitchBendRangeSlider);
 }
@@ -1031,7 +1031,7 @@ ArpSequencerComponent::ArpSequencerComponent(ArpParameters* arpParameters)
 	_arpParameters(arpParameters),
 	_enableSwitch("ON", _arpParameters->ArpEnabled, this),
 	_loopSwitch("LOOP", _arpParameters->LoopEnabled, this),
-	_stepTimeSlider("DURATION", "sec", _arpParameters->ArpStepTime, this, MIN_DELTA, 0.25f),
+	_stepTimeSlider("LENGTH", "sec", _arpParameters->ArpStepTime, this, MIN_DELTA, 0.25f),
 	_rangeSliders(_arpParameters) {
 
 	addAndMakeVisible(_enableSwitch);
@@ -1199,15 +1199,15 @@ WaveformMemoryParametersComponent::WaveformMemoryParametersComponent(
 	addAndMakeVisible(nextButton);
 
 
-	saveButton.setButtonText("Save");
+	saveButton.setButtonText("SAVE");
 	saveButton.addListener(this);
 	addAndMakeVisible(saveButton);
 
-	loadButton.setButtonText("Load");
+	loadButton.setButtonText("LOAD");
 	loadButton.addListener(this);
 	addAndMakeVisible(loadButton);
 
-	fileBrowserButton.setButtonText("Browse");
+	fileBrowserButton.setButtonText("BROWSE");
 	fileBrowserButton.addListener(this);
 	addAndMakeVisible(fileBrowserButton);
 

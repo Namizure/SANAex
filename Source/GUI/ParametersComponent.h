@@ -132,27 +132,7 @@ private:
 	TextSlider stepTimeSlider;
 };
 
-// custom button for the options menu, makes them thinner
-class CustomIncDecButton : public juce::TextButton {
-public:
-	CustomIncDecButton(const String& name) : TextButton(name) {}
 
-	void paintButton(Graphics& g, bool isMouseOver, bool isButtonDown) override {
-		auto bounds = getLocalBounds().toFloat();
-		g.setColour(isButtonDown ? juce::Colour(67, 85, 94) : Colour(40, 51, 56));
-		g.fillRect(bounds.getX(), bounds.getY() + 21.0f, bounds.getWidth(), 20.0f);
-		g.setColour(Colours::white);
-		g.drawRoundedRectangle(bounds.getX(), bounds.getY() + 21.0f, bounds.getWidth(), 20.0f, 2.0f, 0.5f);
-		g.drawText(getButtonText(), getLocalBounds(), Justification::centred);
-	}
-};
-
-class IncButtonLook : public LookAndFeel_V4 {
-public:
-	juce::Button* createSliderButton(Slider& s, bool isIncrement) {
-		return new CustomIncDecButton(isIncrement ? "+" : "-");
-	}
-};
 
 
 class OptionsParametersComponent : public BaseComponent, Slider::Listener {
@@ -175,7 +155,6 @@ private:
 	TextSliderIncDec pitchBendRangeSlider;
 
 
-	IncButtonLook IncButtonLook;
 };
 
 class MidiEchoParametersComponent : public BaseComponent,
@@ -258,15 +237,15 @@ private:
 
 
 	FileBrowserComponent* _fileBrowser = nullptr;
-	TextButton saveButton;
-	TextButton loadButton;
-	TextButton fileBrowserButton;
+	TextButtonSmall saveButton;
+	TextButtonSmall loadButton;
+	TextButtonSmall fileBrowserButton;
 
 	// making new wave button
-	TextButton waveButton;
+	TextButtonSmall waveButton;
 
-	TextButton nextButton;
-	TextButton prevButton;
+	TextButtonSmall nextButton;
+	TextButtonSmall prevButton;
 
 
 
