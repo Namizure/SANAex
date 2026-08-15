@@ -1,55 +1,64 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<JUCERPROJECT name="SANA_8bit_VST" projectType="audioplug" buildStandalone="1"
-              pluginFormats="buildAU,buildStandalone,buildVST,buildVST3" buildVST="1"
-              buildVST3="1" buildAU="1" buildAUv3="0" buildRTAS="0" buildAAX="0"
-              enableIAA="0" pluginCharacteristicsValue="pluginIsSynth,pluginWantsMidiIn"
+<JUCERPROJECT name="SANAex" projectType="audioplug" buildStandalone="1" pluginFormats="buildAU,buildStandalone,buildVST3"
+              buildVST="0" buildVST3="1" buildAU="1" buildAUv3="0" buildRTAS="0"
+              buildAAX="0" enableIAA="0" pluginCharacteristicsValue="pluginIsSynth,pluginWantsMidiIn"
               id="j6lCat" reportAppUsage="0" bundleIdentifier="com.MasakiMori.SANA"
-              pluginManufacturer="MasakiMori" version="2.00" pluginVSTCategory="kPlugCategSynth"
+              pluginManufacturer="NEZUDEX" version="2.08" pluginVSTCategory="kPlugCategSynth"
               splashScreenColour="Dark" jucerFormatVersion="1" displaySplashScreen="1"
               pluginVST3Category="Instrument">
-  <MAINGROUP id="IZtsAI" name="SANA_8bit_VST">
+  <MAINGROUP id="IZtsAI" name="SANAex">
     <GROUP id="{0FF198AF-00FB-C9FF-2361-004F9332861C}" name="Source">
-      <GROUP id="{1EF15716-4953-878F-FF46-72E0314DD4F8}" name="GUI">
-        <FILE id="q4RKXG" name="ComponentUtil.hpp" compile="0" resource="0"
-              file="Source/GUI/ComponentUtil.hpp"/>
-        <FILE id="ZfoH4a" name="ParametersComponent.cpp" compile="1" resource="0"
-              file="Source/GUI/ParametersComponent.cpp"/>
-        <FILE id="MJVnVM" name="ParametersComponent.h" compile="0" resource="0"
-              file="Source/GUI/ParametersComponent.h"/>
-        <FILE id="MxSTgq" name="ScopeComponent.hpp" compile="1" resource="0"
-              file="Source/GUI/ScopeComponent.hpp" xcodeResource="0"/>
-      </GROUP>
-      <GROUP id="{97C69670-A71D-517E-1589-B4DF8AAE0D93}" name="DSP">
-        <FILE id="Y6zGFW" name="ColorEnvelope.cpp" compile="1" resource="0"
+      <GROUP id="{FF8EDC5F-9C89-0C09-938B-D430569B43A4}" name="DSP">
+        <FILE id="IOGjda" name="AmpEnvelope.cpp" compile="1" resource="0" file="Source/DSP/AmpEnvelope.cpp"/>
+        <FILE id="z63EPy" name="AmpEnvelope.h" compile="0" resource="0" file="Source/DSP/AmpEnvelope.h"/>
+        <FILE id="T84mOO" name="ColorEnvelope.cpp" compile="1" resource="0"
               file="Source/DSP/ColorEnvelope.cpp"/>
-        <FILE id="Oysa8U" name="ColorEnvelope.h" compile="0" resource="0" file="Source/DSP/ColorEnvelope.h"/>
-        <FILE id="LQAmtS" name="AmpEnvelope.cpp" compile="1" resource="0" file="Source/DSP/AmpEnvelope.cpp"/>
-        <FILE id="kOw8q1" name="AmpEnvelope.h" compile="0" resource="0" file="Source/DSP/AmpEnvelope.h"/>
-        <FILE id="MYHPO6" name="DspUtils.h" compile="0" resource="0" file="Source/DSP/DspUtils.h"/>
-        <FILE id="i00HSI" name="MIDIEcho.h" compile="0" resource="0" file="Source/DSP/MIDIEcho.h"/>
-        <FILE id="fOBoQl" name="SimpleSound.cpp" compile="1" resource="0" file="Source/DSP/SimpleSound.cpp"/>
-        <FILE id="NkrG8d" name="SimpleSound.h" compile="0" resource="0" file="Source/DSP/SimpleSound.h"/>
-        <FILE id="IjJsMl" name="SynthParameters.cpp" compile="1" resource="0"
+        <FILE id="DeacWz" name="ColorEnvelope.h" compile="0" resource="0" file="Source/DSP/ColorEnvelope.h"/>
+        <FILE id="WSrev6" name="DspUtils.h" compile="0" resource="0" file="Source/DSP/DspUtils.h"/>
+        <FILE id="wXqC2W" name="MIDIEcho.h" compile="0" resource="0" file="Source/DSP/MIDIEcho.h"/>
+        <FILE id="oylA14" name="SimpleSound.cpp" compile="1" resource="0" file="Source/DSP/SimpleSound.cpp"/>
+        <FILE id="wgj3jg" name="SimpleSound.h" compile="0" resource="0" file="Source/DSP/SimpleSound.h"/>
+        <FILE id="lPnJQg" name="SimpleVoice.cpp" compile="1" resource="0" file="Source/DSP/SimpleVoice.cpp"/>
+        <FILE id="iJrwaS" name="SimpleVoice.h" compile="0" resource="0" file="Source/DSP/SimpleVoice.h"/>
+        <FILE id="PyuUfO" name="SynthParameters.cpp" compile="1" resource="0"
               file="Source/DSP/SynthParameters.cpp"/>
-        <FILE id="zWODSm" name="SynthParameters.h" compile="0" resource="0"
+        <FILE id="GPTaaM" name="SynthParameters.h" compile="0" resource="0"
               file="Source/DSP/SynthParameters.h"/>
-        <FILE id="En0YXn" name="SimpleVoice.cpp" compile="1" resource="0" file="Source/DSP/SimpleVoice.cpp"/>
-        <FILE id="wW4Ofk" name="SimpleVoice.h" compile="0" resource="0" file="Source/DSP/SimpleVoice.h"/>
-        <FILE id="tvbvmW" name="Timer.cpp" compile="1" resource="0" file="Source/DSP/Timer.cpp"/>
-        <FILE id="uOXjSO" name="Timer.h" compile="0" resource="0" file="Source/DSP/Timer.h"/>
-        <FILE id="ndmaLx" name="Waveforms.cpp" compile="1" resource="0" file="Source/DSP/Waveforms.cpp"/>
-        <FILE id="Wm9LNQ" name="Waveforms.h" compile="0" resource="0" file="Source/DSP/Waveforms.h"/>
+        <FILE id="wLKUXQ" name="Timer.cpp" compile="1" resource="0" file="Source/DSP/Timer.cpp"/>
+        <FILE id="VSGx9S" name="Timer.h" compile="0" resource="0" file="Source/DSP/Timer.h"/>
+        <FILE id="RCIvqL" name="Waveforms.cpp" compile="1" resource="0" file="Source/DSP/Waveforms.cpp"/>
+        <FILE id="IQtBYc" name="Waveforms.h" compile="0" resource="0" file="Source/DSP/Waveforms.h"/>
       </GROUP>
-      <FILE id="bHiY0a" name="BaseAudioProcessor.cpp" compile="1" resource="0"
+      <GROUP id="{4B9EB409-CFE2-5C6A-1F98-97360A03FDAE}" name="GUI">
+        <FILE id="FB2O2f" name="logo.png" compile="0" resource="1" file="Source/GUI/logo.png"/>
+        <FILE id="GzkpVk" name="bg.png" compile="0" resource="1" file="Source/GUI/bg.png"/>
+        <FILE id="aIfyua" name="BarlowCondensedSemiBold.ttf" compile="0" resource="1"
+              file="Source/GUI/BarlowCondensedSemiBold.ttf"/>
+        <FILE id="JhZyEc" name="BarlowCondensedMedium.ttf" compile="0" resource="1"
+              file="Source/GUI/BarlowCondensedMedium.ttf"/>
+        <FILE id="r0XRgY" name="OFL.txt" compile="0" resource="1" file="Source/GUI/OFL.txt"/>
+        <FILE id="imlK37" name="BarlowCondensed-Regular.ttf" compile="0" resource="1"
+              file="../../AppData/Local/Microsoft/Windows/Fonts/BarlowCondensed-Regular.ttf"/>
+        <FILE id="IbRL7q" name="ComponentUtil.hpp" compile="0" resource="0"
+              file="Source/GUI/ComponentUtil.hpp"/>
+        <FILE id="WDXyRw" name="ParametersComponent.cpp" compile="1" resource="0"
+              file="Source/GUI/ParametersComponent.cpp"/>
+        <FILE id="LxtbGk" name="ParametersComponent.h" compile="0" resource="0"
+              file="Source/GUI/ParametersComponent.h"/>
+        <FILE id="VPvzso" name="ProjectFonts.h" compile="0" resource="0" file="Source/GUI/ProjectFonts.h"/>
+        <FILE id="z9GxHY" name="ScopeComponent.hpp" compile="0" resource="0"
+              file="Source/GUI/ScopeComponent.hpp"/>
+      </GROUP>
+      <FILE id="aLB7qH" name="BaseAudioProcessor.cpp" compile="1" resource="0"
             file="Source/BaseAudioProcessor.cpp"/>
-      <FILE id="SshHdJ" name="BaseAudioProcessor.h" compile="0" resource="0"
+      <FILE id="tIxxBa" name="BaseAudioProcessor.h" compile="0" resource="0"
             file="Source/BaseAudioProcessor.h"/>
-      <FILE id="XC2zXk" name="EditorGUI.cpp" compile="1" resource="0" file="Source/EditorGUI.cpp"/>
-      <FILE id="M6WJ2N" name="EditorGUI.h" compile="0" resource="0" file="Source/EditorGUI.h"/>
-      <FILE id="D20u63" name="PluginProcessor.cpp" compile="1" resource="0"
+      <FILE id="YkKMyq" name="EditorGUI.cpp" compile="1" resource="0" file="Source/EditorGUI.cpp"/>
+      <FILE id="wZQUVT" name="EditorGUI.h" compile="0" resource="0" file="Source/EditorGUI.h"/>
+      <FILE id="TCQabc" name="PluginProcessor.cpp" compile="1" resource="0"
             file="Source/PluginProcessor.cpp"/>
-      <FILE id="IsKzne" name="PluginProcessor.h" compile="0" resource="0"
+      <FILE id="b6cMUf" name="PluginProcessor.h" compile="0" resource="0"
             file="Source/PluginProcessor.h"/>
     </GROUP>
   </MAINGROUP>
@@ -81,32 +90,34 @@
         <MODULEPATH id="juce_audio_formats"/>
         <MODULEPATH id="juce_audio_devices"/>
         <MODULEPATH id="juce_audio_basics"/>
+        <MODULEPATH id="juce_audio_processors_headless" path="../../../../JUCE/modules"/>
       </MODULEPATHS>
     </XCODE_MAC>
-    <VS2019 targetFolder="Builds/VisualStudio2019">
+    <VS2022 targetFolder="Builds/VisualStudio2022">
       <CONFIGURATIONS>
         <CONFIGURATION isDebug="1" name="Debug"/>
-        <CONFIGURATION isDebug="0" name="Release" winArchitecture="x64" useRuntimeLibDLL="0"/>
+        <CONFIGURATION isDebug="0" name="Release"/>
       </CONFIGURATIONS>
       <MODULEPATHS>
-        <MODULEPATH id="juce_audio_basics" path="C:\Users\memen\Desktop\JUCE\modules"/>
-        <MODULEPATH id="juce_audio_devices" path="C:\Users\memen\Desktop\JUCE\modules"/>
-        <MODULEPATH id="juce_audio_formats" path="C:\Users\memen\Desktop\JUCE\modules"/>
-        <MODULEPATH id="juce_audio_plugin_client" path="C:\Users\memen\Desktop\JUCE\modules"/>
-        <MODULEPATH id="juce_audio_processors" path="C:\Users\memen\Desktop\JUCE\modules"/>
-        <MODULEPATH id="juce_audio_utils" path="C:\Users\memen\Desktop\JUCE\modules"/>
-        <MODULEPATH id="juce_core" path="C:\Users\memen\Desktop\JUCE\modules"/>
-        <MODULEPATH id="juce_cryptography" path="C:\Users\memen\Desktop\JUCE\modules"/>
-        <MODULEPATH id="juce_data_structures" path="C:\Users\memen\Desktop\JUCE\modules"/>
-        <MODULEPATH id="juce_dsp" path="C:\Users\memen\Desktop\JUCE\modules"/>
-        <MODULEPATH id="juce_events" path="C:\Users\memen\Desktop\JUCE\modules"/>
-        <MODULEPATH id="juce_graphics" path="C:\Users\memen\Desktop\JUCE\modules"/>
-        <MODULEPATH id="juce_gui_basics" path="C:\Users\memen\Desktop\JUCE\modules"/>
-        <MODULEPATH id="juce_gui_extra" path="C:\Users\memen\Desktop\JUCE\modules"/>
-        <MODULEPATH id="juce_opengl" path="C:\Users\memen\Desktop\JUCE\modules"/>
-        <MODULEPATH id="juce_video" path="C:\Users\memen\Desktop\JUCE\modules"/>
+        <MODULEPATH id="juce_audio_basics" path="C:\JUCE\modules"/>
+        <MODULEPATH id="juce_audio_devices" path="C:\JUCE\modules"/>
+        <MODULEPATH id="juce_audio_formats" path="C:\JUCE\modules"/>
+        <MODULEPATH id="juce_audio_plugin_client" path="C:\JUCE\modules"/>
+        <MODULEPATH id="juce_audio_processors" path="C:\JUCE\modules"/>
+        <MODULEPATH id="juce_audio_processors_headless" path="C:\JUCE\modules"/>
+        <MODULEPATH id="juce_audio_utils" path="C:\JUCE\modules"/>
+        <MODULEPATH id="juce_core" path="C:\JUCE\modules"/>
+        <MODULEPATH id="juce_cryptography" path="C:\JUCE\modules"/>
+        <MODULEPATH id="juce_data_structures" path="C:\JUCE\modules"/>
+        <MODULEPATH id="juce_dsp" path="C:\JUCE\modules"/>
+        <MODULEPATH id="juce_events" path="C:\JUCE\modules"/>
+        <MODULEPATH id="juce_graphics" path="C:\JUCE\modules"/>
+        <MODULEPATH id="juce_gui_basics" path="C:\JUCE\modules"/>
+        <MODULEPATH id="juce_gui_extra" path="C:\JUCE\modules"/>
+        <MODULEPATH id="juce_opengl" path="C:\JUCE\modules"/>
+        <MODULEPATH id="juce_video" path="C:\JUCE\modules"/>
       </MODULEPATHS>
-    </VS2019>
+    </VS2022>
   </EXPORTFORMATS>
   <MODULES>
     <MODULE id="juce_audio_basics" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
@@ -115,6 +126,8 @@
     <MODULE id="juce_audio_plugin_client" showAllCode="1" useLocalCopy="0"
             useGlobalPath="1"/>
     <MODULE id="juce_audio_processors" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_audio_processors_headless" showAllCode="1" useLocalCopy="0"
+            useGlobalPath="1"/>
     <MODULE id="juce_audio_utils" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
     <MODULE id="juce_core" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
     <MODULE id="juce_cryptography" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>

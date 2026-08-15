@@ -93,10 +93,13 @@ EditorGUI::EditorGUI(PluginProcessor& p)
 			addAndMakeVisible(filterParamsComponent);
 			addAndMakeVisible(scopeComponent);
 		}
-		setResizable(true, true);
+		setResizable(false, false);
 		setSize(960, 540 + KEY_HEIGHT);
 
-		setResizeLimits(640, 432, 1088, 612);
+		logo = juce::ImageCache::getFromMemory(BinaryData::logo_png, BinaryData::logo_pngSize);
+		bg = juce::ImageCache::getFromMemory(BinaryData::bg_png, BinaryData::bg_pngSize);
+
+		//setResizeLimits(640, 432, 1088, 612);
 
 		{
 			customLookAndFeel = new LookAndFeel_V4(LookAndFeel_V4::getLightColourScheme());
@@ -212,12 +215,20 @@ void EditorGUI::paint(Graphics& g) {
 	g.fillAll();
 	g.setColour(Colours::white);
 	g.setFont(Font(32, Font::bold));
-	std::string VersionName = "SANAex UI ";
-	VersionName += JucePlugin_VersionString;
-	g.drawFittedText(VersionName, AudioProcessorEditor::getLocalBounds(),
-		Justification::topRight, 1);
 
+	g.setImageResamplingQuality(juce::Graphics::highResamplingQuality);
 
+	float bgX = 340;
+	float bgY = -10.0f;
+	float bgWidth = (float)getWidth() / 2;
+	float bgHeight = (float)getHeight() / 3;
+	g.drawImageWithin(bg, bgX, bgY, bgWidth, bgHeight, juce::RectanglePlacement::stretchToFit);
+
+	int logoX = 860;
+	int logoY = 2;
+	float logoWidth = getWidth() / 11;
+	float logoHeight = getHeight() / 11;
+	g.drawImageWithin(logo, logoX, logoY, logoWidth, logoHeight, juce::RectanglePlacement::stretchToFit);
 }
 
 
@@ -268,7 +279,7 @@ void EditorGUI::resized() {
 			auto fullLeftPanelArea = leftArea.reduced(PANEL_MARGIN);
 			vibratoParamsComponent.setBounds(fullLeftPanelArea);
 
-			int sweepHeight = 150;
+			int sweepHeight = 154;
 			fullLeftPanelArea.removeFromBottom(0);
 
 			auto sweepArea = fullLeftPanelArea.removeFromBottom(sweepHeight);

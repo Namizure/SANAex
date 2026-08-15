@@ -78,6 +78,3 @@ Makefile
 
 # JUCE (cloned for local development)
 /JUCE/
-
-# Claude Code local settings
-.claude/

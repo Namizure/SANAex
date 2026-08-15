@@ -141,9 +141,6 @@ public:
 
 
 		slider.setLookAndFeel(&CustomSliderLookAndFeel);
-
-
-
 		slider.setRange(start, end, degree);
 		slider.setValue(value, dontSendNotification);
 		slider.setTextValueSuffix(std::string(" ") + unit);
@@ -224,7 +221,6 @@ private:
 };
 
 
-
 class CustomSmallSliderLookAndFeel : public juce::LookAndFeel_V4 {
 public:
 	CustomSmallSliderLookAndFeel() {
@@ -262,6 +258,9 @@ public:
 			g.setColour(slider.findColour(juce::Slider::backgroundColourId));
 			g.fillRoundedRectangle(bounds, cornerSize);
 
+
+			slider.setSliderSnapsToMousePosition(true);
+
 			float padding = 2.0f;
 			juce::Rectangle<float> innerBounds = bounds.reduced(padding);
 			float innerCornerSize = 1.5f;
@@ -283,12 +282,32 @@ public:
 };
 
 
+class DoubleClickSlider : public juce::Slider {
+public:
+	using juce::Slider::Slider;
+
+	void mouseUp(const juce::MouseEvent& e) override {
+		if (e.mouseWasClicked() && e.getNumberOfClicks() < 2) {
+			auto pos = getTextBoxPosition();
+			auto width = getTextBoxWidth();
+			auto height = getTextBoxHeight();
+			setTextBoxStyle(pos, true, width, height);
+			juce::Slider::mouseUp(e);
+			setTextBoxStyle(pos, false, width, height);
+		}
+		else {
+			juce::Slider::mouseUp(e);
+
+		}
+	}
+};
+
 class TextSliderSmall : public Component {
 public:
 	int LOCAL_MARGIN = 2;
 	int LABEL_WIDTH = 60;
 
-	Slider slider;
+	DoubleClickSlider slider;
 	Label label;
 
 	CustomSmallSliderLookAndFeel CustomSliderLookAndFeel;
@@ -303,6 +322,7 @@ public:
 		slider.setValue(value, dontSendNotification);
 		slider.setTextValueSuffix(std::string(" ") + unit);
 		slider.addListener(listener);
+
 
 		if (pivot != NULL) {
 			slider.setSkewFactorFromMidPoint(pivot);
@@ -1299,13 +1319,13 @@ private:
 			auto bounds = b.getLocalBounds().toFloat().reduced(0.5f, 0.5f);
 			// button
 			if (isactive || isButtonDown) {
-				g.setColour(juce::Colour(37, 37, 39));
+				g.setColour(juce::Colour(37, 37, 39).withAlpha(0.0f));
 			}
 			else {
-				g.setColour(juce::Colour(37, 37, 39));
+				g.setColour(juce::Colour(37, 37, 39).withAlpha(0.0f));
 			}
 
-			if (isMouseOverButton) {
+			/*if (isMouseOverButton) {
 				juce::ColourGradient gradient(
 					juce::Colour(37, 37, 39), 0.0f, 0.0f,
 					juce::Colour(28, 28, 29), 0.0f, 50.0f,
@@ -1316,7 +1336,7 @@ private:
 
 			if (isButtonDown) {
 				g.setColour(juce::Colour(37, 37, 39));
-			}
+			}*/
 
 
 			g.fillRoundedRectangle(bounds, 0.0f);
@@ -1951,7 +1971,6 @@ private:
 				_arpParameters->isEndStep[index] = true;
 			}
 
-			//_isEndStep[index] = !_isEndStep[index];
 			repaint();
 			return;
 		}
