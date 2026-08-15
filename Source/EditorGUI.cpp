@@ -9,17 +9,17 @@ namespace {
 	const float KEY_SCROLL_WIDTH = 32.0f;
 	const std::int32_t PANEL_MARGIN = 3;
 
-}  // namespace
+}
 
 EditorGUI::EditorGUI(PluginProcessor& p)
 	: AudioProcessorEditor(&p),
 	processor(p),
 	keyboardComponent(p.getKeyboardState(),
 		MidiKeyboardComponent::Orientation::horizontalKeyboard),
-	OscButton("Wave", this),
-	CycleButton("Cycles", this),
-	ArpButton("Arp", this),
-	EffectButton("Effects", this),
+	OscButton("WAVES", this),
+	CycleButton("CYCLES", this),
+	ArpButton("ARPS", this),
+	EffectButton("EFFECTS", this),
 
 
 	chipOscComponent(&p.chipOscParameters, &p.waveformMemoryParameters),
@@ -62,6 +62,10 @@ EditorGUI::EditorGUI(PluginProcessor& p)
 			addAndMakeVisible(keyboardComponent);
 			keyboardComponent.setKeyWidth(KEY_WIDTH);
 			keyboardComponent.setScrollButtonWidth(KEY_SCROLL_WIDTH);
+			keyboardComponent.setColour(juce::MidiKeyboardComponent::keyDownOverlayColourId, Colour(200, 48, 48));
+			keyboardComponent.setColour(juce::MidiKeyboardComponent::mouseOverKeyOverlayColourId, Colour(190, 187, 194));
+
+
 
 			addAndMakeVisible(OscButton);
 			addAndMakeVisible(CycleButton);
@@ -89,10 +93,13 @@ EditorGUI::EditorGUI(PluginProcessor& p)
 			addAndMakeVisible(filterParamsComponent);
 			addAndMakeVisible(scopeComponent);
 		}
-		setResizable(true, true);
+		setResizable(false, false);
 		setSize(960, 540 + KEY_HEIGHT);
 
-		setResizeLimits(640, 432, 1088, 612);
+		logo = juce::ImageCache::getFromMemory(BinaryData::logo_png, BinaryData::logo_pngSize);
+		bg = juce::ImageCache::getFromMemory(BinaryData::bg_png, BinaryData::bg_pngSize);
+
+		//setResizeLimits(640, 432, 1088, 612);
 
 		{
 			customLookAndFeel = new LookAndFeel_V4(LookAndFeel_V4::getLightColourScheme());
@@ -102,11 +109,11 @@ EditorGUI::EditorGUI(PluginProcessor& p)
 			customLookAndFeel->setColour(TextButton::ColourIds::textColourOffId, Colour(201, 213, 219));
 			customLookAndFeel->setColour(TextButton::ColourIds::textColourOnId, Colour(201, 213, 219));
 
-			customLookAndFeel->setColour(Slider::ColourIds::trackColourId, Colour(253, 167, 63));
-			customLookAndFeel->setColour(Slider::ColourIds::thumbColourId, Colour(137, 140, 149));
-			customLookAndFeel->setColour(Slider::ColourIds::backgroundColourId, Colour(104, 112, 117));
-			customLookAndFeel->setColour(Slider::ColourIds::textBoxBackgroundColourId, Colour(45, 52, 57));
-			customLookAndFeel->setColour(Slider::ColourIds::textBoxTextColourId, Colour(201, 213, 219));
+			//customLookAndFeel->setColour(Slider::ColourIds::trackColourId, Colour(200, 48, 48));
+			//customLookAndFeel->setColour(Slider::ColourIds::thumbColourId, Colour(137, 140, 149));
+			//customLookAndFeel->setColour(Slider::ColourIds::backgroundColourId, Colour(255, 255, 255));
+			//customLookAndFeel->setColour(Slider::ColourIds::textBoxBackgroundColourId, Colour(45, 52, 57));
+			//customLookAndFeel->setColour(Slider::ColourIds::textBoxTextColourId, Colour(201, 213, 219));
 
 			customLookAndFeel->setColour(ToggleButton::ColourIds::textColourId, Colour(201, 213, 219));
 			customLookAndFeel->setColour(ToggleButton::ColourIds::tickColourId, Colour(201, 213, 219));
@@ -192,19 +199,36 @@ EditorGUI::~EditorGUI() {
 		child->setLookAndFeel(nullptr);
 	}
 
+	optionsParamsComponent.setLookAndFeel(nullptr);
+
 	delete customLookAndFeel;
 }
 
 
 
 void EditorGUI::paint(Graphics& g) {
-	g.fillAll(BACKGROUND_COLOUR());
+	juce::ColourGradient gradient(
+		juce::Colour(37, 37, 39), 0.0f, 0.0f,
+		juce::Colour(28, 28, 29), 0.0f, 350.0f,
+		false);
+	g.setGradientFill(gradient);
+	g.fillAll();
 	g.setColour(Colours::white);
 	g.setFont(Font(32, Font::bold));
-	std::string VersionName = "SANAex ";
-	VersionName += JucePlugin_VersionString;
-	g.drawFittedText(VersionName, AudioProcessorEditor::getLocalBounds(),
-		Justification::topRight, 1);
+
+	g.setImageResamplingQuality(juce::Graphics::highResamplingQuality);
+
+	float bgX = 340;
+	float bgY = -10.0f;
+	float bgWidth = (float)getWidth() / 2;
+	float bgHeight = (float)getHeight() / 3;
+	g.drawImageWithin(bg, bgX, bgY, bgWidth, bgHeight, juce::RectanglePlacement::stretchToFit);
+
+	int logoX = 860;
+	int logoY = 2;
+	float logoWidth = getWidth() / 11;
+	float logoHeight = getHeight() / 11;
+	g.drawImageWithin(logo, logoX, logoY, logoWidth, logoHeight, juce::RectanglePlacement::stretchToFit);
 }
 
 
@@ -221,15 +245,19 @@ void EditorGUI::resized() {
 		EffectButton.setBounds(area.removeFromLeft(80));
 	}
 
-	// Oscillator Page
+	// Oscillator Page (WAVE)
 	if (OscButton.button.getToggleState() == true) {
 		Rectangle<int> mainbounds = bounds;
+		mainbounds.translate(0, -6);
 		{
-			Rectangle<int> leftArea =
-				mainbounds.removeFromLeft(bounds.getWidth() * 0.45f);
-			chipOscComponent.setBounds(
-				leftArea.removeFromTop(leftArea.getHeight() * 0.6f).reduced(PANEL_MARGIN));
-			scopeComponent.setBounds(leftArea.reduced(PANEL_MARGIN));
+			Rectangle<int> leftArea = mainbounds.removeFromLeft(bounds.getWidth() * 0.45f);
+			auto fullLeftPanelArea = leftArea.reduced(PANEL_MARGIN);
+			chipOscComponent.setBounds(fullLeftPanelArea);
+			int scopeHeight = 245;
+			auto scopeArea = fullLeftPanelArea.removeFromBottom(scopeHeight).reduced(30, 30);
+			scopeComponent.setBounds(scopeArea.translated(2.5, 5));
+			scopeComponent.toFront(false);
+
 		}
 		{
 			Rectangle<int> rightArea = mainbounds;
@@ -241,38 +269,80 @@ void EditorGUI::resized() {
 
 	if (EffectButton.button.getToggleState() == true) {
 		Rectangle<int> mainbounds = bounds;
+		mainbounds.translate(0, -6);
+
 		auto rowHeight = mainbounds.getHeight() / 3;
 		auto colWidth = mainbounds.getWidth() / 2;
 
 		{
-			auto rowBounds = mainbounds.removeFromTop(rowHeight);
-			auto leftBox = rowBounds.removeFromLeft(colWidth).reduced(PANEL_MARGIN);
-			auto rightBox = rowBounds.reduced(PANEL_MARGIN);
+			Rectangle<int> leftArea = mainbounds.removeFromLeft(bounds.getWidth() * 0.45f);
+			auto fullLeftPanelArea = leftArea.reduced(PANEL_MARGIN);
+			vibratoParamsComponent.setBounds(fullLeftPanelArea);
 
-			vibratoParamsComponent.setBounds(leftBox);
-			sweepParamsComponent.setBounds(rightBox);
+			int sweepHeight = 154;
+			fullLeftPanelArea.removeFromBottom(0);
+
+			auto sweepArea = fullLeftPanelArea.removeFromBottom(sweepHeight);
+			sweepParamsComponent.setBounds(sweepArea);
+			sweepParamsComponent.toFront(false);
+
+			auto voicingArea = fullLeftPanelArea.removeFromBottom(sweepHeight);
+			voicingParamsComponent.setBounds(voicingArea.translated(0, 34));
+			voicingParamsComponent.toFront(false);
 		}
+
+
+		//{
+		//	auto rowBounds = mainbounds.removeFromTop(rowHeight);
+		//	auto leftBox = rowBounds.removeFromLeft(colWidth);
+		//	auto rightBox = rowBounds.reduced(PANEL_MARGIN);
+
+		//	vibratoParamsComponent.setBounds(leftBox);
+
+		//}
+
+
+
+			//Rectangle<int> rightArea = mainbounds.reduced(PANEL_MARGIN);
+
+			//auto topArea = rightArea.removeFromTop(rightArea.getHeight() / 2);
+			//auto bottomArea = rightArea;
+
+			//optionsParamsComponent.setBounds(topArea);
+			//filterParamsComponent.setBounds(bottomArea);
+
+			//midiEchoParamsComponent.setBounds(leftBox);
+
+
+
 		{
-			auto rowBounds = mainbounds.removeFromTop(rowHeight);
-			auto leftBox = rowBounds.removeFromLeft(colWidth).reduced(PANEL_MARGIN);
-			auto rightBox = rowBounds.reduced(PANEL_MARGIN);
 
-			midiEchoParamsComponent.setBounds(leftBox);
-			filterParamsComponent.setBounds(rightBox);
-		}
-		{
-			auto leftBox = mainbounds.removeFromLeft(colWidth).reduced(PANEL_MARGIN);
-			auto rightBox = mainbounds.reduced(PANEL_MARGIN);
+			Rectangle<int> rightArea = mainbounds.reduced(PANEL_MARGIN);
+			auto fullRightPanelArea = rightArea.reduced(PANEL_MARGIN);
+			optionsParamsComponent.setBounds(fullRightPanelArea);
 
-			voicingParamsComponent.setBounds(leftBox);
-			optionsParamsComponent.setBounds(rightBox);
+			int sweepHeight = 290;
+			fullRightPanelArea.removeFromBottom(0);
+
+			auto sweepArea = fullRightPanelArea.removeFromBottom(sweepHeight);
+			filterParamsComponent.setBounds(sweepArea);
+			filterParamsComponent.toFront(false);
+
+			//auto voicingArea = fullRightPanelArea.removeFromBottom(sweepHeight);
+			//filterParamsComponent.setBounds(voicingArea.translated(0, 34));
+			//filterParamsComponent.toFront(false);
+
 		}
+
 	}
 
 	if (CycleButton.button.getToggleState() == true)
 	{
 		Rectangle<int> mainbounds = bounds;
-		Rectangle<int> leftArea = mainbounds.removeFromLeft(bounds.getWidth() * 0.5f);
+		mainbounds.translate(0, -6);
+
+
+		Rectangle<int> leftArea = mainbounds.removeFromLeft(bounds.getWidth() * 0.45f);
 		wavePatternsComponent.setBounds(leftArea.reduced(PANEL_MARGIN));
 		int waveformHeight = mainbounds.getHeight() * 1.f;
 		Rectangle<int> rightTopArea = mainbounds.removeFromTop(waveformHeight);
@@ -283,14 +353,25 @@ void EditorGUI::resized() {
 	if (ArpButton.button.getToggleState() == true)
 	{
 		Rectangle<int> mainbounds = bounds;
-		Rectangle<int> leftArea = mainbounds.removeFromLeft(bounds.getWidth() * 0.5f);
-		arpSequencer.setBounds(leftArea.reduced(PANEL_MARGIN));
-		int seqHeight = mainbounds.getHeight() * 1.f;
-		Rectangle<int> rightTopArea = mainbounds.removeFromTop(seqHeight);
-		//scopeComponent.setBounds(mainbounds.reduced(PANEL_MARGIN));
-		chipOscComponent.setBounds(rightTopArea.reduced(PANEL_MARGIN));
-	}
+		mainbounds.translate(0, -6);
 
+		{
+			Rectangle<int> leftArea = mainbounds.removeFromLeft(bounds.getWidth() * 0.45f);
+			auto fullLeftPanelArea = leftArea.reduced(PANEL_MARGIN);
+			chipOscComponent.setBounds(fullLeftPanelArea);
+
+			int scopeHeight = 245;
+			auto scopeArea = fullLeftPanelArea.removeFromBottom(scopeHeight).reduced(30, 30);
+			scopeComponent.setBounds(scopeArea.translated(2.5, 5));
+			scopeComponent.toFront(false);
+		}
+		{
+			Rectangle<int> rightArea = mainbounds;
+			arpSequencer.setBounds(
+				rightArea.reduced(PANEL_MARGIN)
+			);
+		}
+	}
 }
 
 void EditorGUI::buttonClicked(Button* button) {
@@ -329,7 +410,7 @@ void EditorGUI::buttonClicked(Button* button) {
 
 		sweepParamsComponent.setVisible(true);
 		vibratoParamsComponent.setVisible(true);
-		midiEchoParamsComponent.setVisible(true);
+		//midiEchoParamsComponent.setVisible(true);
 		filterParamsComponent.setVisible(true);
 		voicingParamsComponent.setVisible(true);
 		optionsParamsComponent.setVisible(true);
@@ -347,8 +428,9 @@ void EditorGUI::buttonClicked(Button* button) {
 		arpSequencer.setVisible(true);
 		waveformMemoryParamsComponent.setVisible(false);
 		chipOscComponent.setVisible(true);
-		//scopeComponent.setVisible(true);
+		scopeComponent.setVisible(true);
 		ArpButton.setToggleState(true);
 	}
 	resized();
 }
+

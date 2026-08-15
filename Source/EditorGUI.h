@@ -46,5 +46,8 @@ private:
 
 	ArpSequencerComponent arpSequencer;
 
+	juce::Image logo;
+	juce::Image bg;
+
 	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(EditorGUI)
 };

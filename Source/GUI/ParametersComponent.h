@@ -22,6 +22,8 @@ public:
 
 private:
 	ProjectFonts::LookAndFeel lookAndFeel;
+
+
 	virtual void timerCallback() = 0;
 };
 
@@ -101,8 +103,8 @@ private:
 
 	VibratoParameters* _vibratoParamsPtr;
 
-	SwitchButton enableSwitch;
-	SwitchButton attackDeleySwitch;
+	SwitchButtonOptions enableSwitch;
+	SwitchButtonOptions attackDeleySwitch;
 	TextSlider amountSlider;
 	TextSlider speedSlider;
 	TextSlider attackDeleyTimeSlider;
@@ -130,9 +132,13 @@ private:
 	TextSlider stepTimeSlider;
 };
 
+
+
+
 class OptionsParametersComponent : public BaseComponent, Slider::Listener {
 public:
 	OptionsParametersComponent(OptionsParameters* optionsParams);
+	~OptionsParametersComponent() override;
 
 	virtual void paint(Graphics& g) override;
 	virtual void resized() override;
@@ -147,6 +153,8 @@ private:
 
 	TextSliderIncDec pitchStandardSlider;
 	TextSliderIncDec pitchBendRangeSlider;
+
+
 };
 
 class MidiEchoParametersComponent : public BaseComponent,
@@ -229,15 +237,15 @@ private:
 
 
 	FileBrowserComponent* _fileBrowser = nullptr;
-	TextButton saveButton;
-	TextButton loadButton;
-	TextButton fileBrowserButton;
+	TextButtonSmall saveButton;
+	TextButtonSmall loadButton;
+	TextButtonSmall fileBrowserButton;
 
 	// making new wave button
-	TextButton waveButton;
+	TextButtonSmall waveButton;
 
-	TextButton nextButton;
-	TextButton prevButton;
+	TextButtonSmall nextButton;
+	TextButtonSmall prevButton;
 
 
 
@@ -276,8 +284,8 @@ private:
 
 	FilterParameters* _filterParamsPtr;
 
-	SwitchButton hiCutSwitch;
-	SwitchButton lowCutSwitch;
+	FilterButton hiCutSwitch;
+	FilterButton lowCutSwitch;
 
 	TextSlider hicutFreqSlider;
 	TextSlider lowcutFreqSlider;
@@ -303,6 +311,7 @@ public:
 	}
 
 	function<void(const int&)> onSwitchWaveform;
+
 
 	void refreshWaveformList() {
 		StringArray fullList;
@@ -352,10 +361,10 @@ private:
 	virtual void sliderValueChanged(Slider* slider) override;
 
 	WavePatternParameters* _wavePatternParameters;
-	SwitchButton _enableSwitch;
-	SwitchButton _loopSwitch;
-	TextSlider _stepTimeSlider;
-	TextSelector* _waveTypeSelectors[WAVEPATTERN_TYPES];
+	SwitchButtonSmall _enableSwitch;
+	SwitchButtonSmall _loopSwitch;
+	TextSliderSmall _stepTimeSlider;
+	TextSelectorSmall* _waveTypeSelectors[WAVEPATTERN_TYPES];
 	PatternSliders _rangeSliders;
 
 	const StringArray OSC_WAVE_TYPES{
@@ -393,6 +402,6 @@ private:
 	ArpParameters* _arpParameters;
 	SwitchButton _loopSwitch;
 	SwitchButton _enableSwitch;
-	TextSlider _stepTimeSlider;
+	TextSliderSmall _stepTimeSlider;
 	ArpSliders _rangeSliders;
 };

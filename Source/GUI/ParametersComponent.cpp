@@ -5,7 +5,7 @@ namespace {
 	const Colour HEADER_COLOUR() { return Colours::white; }
 	const Colour FONT_COLOUR() { return Colours::black; }
 	const Colour TEXT_COLOUR() { return Colours::white; }
-	const Colour BACKGROUND_COLOUR() { return Colour(44, 51, 56); }
+	const Colour BACKGROUND_COLOUR() { return Colour(0.0f, 0.0f, 0.0f, 0.0f); }
 
 	const float MIN_DELTA = 0.0001f;
 	const float HEADER_HEIGHT = 24.0f;
@@ -52,16 +52,84 @@ static std::vector<std::string> split(std::string str, char del) {
 
 static void paintHeader(Graphics& g, Rectangle<int> bounds, std::string text) {
 	{ // 枠の描画
-		auto x = 0.0f,
+		auto x = 10.0f,
 			y = HEADER_HEIGHT - 2;
-		auto width = (float)bounds.getWidth(),
-			height = (float)bounds.getHeight() - y;
-		auto cornerSize = 9.0f,
-			thickness = 0.0f;
-		g.setColour(Colour(36, 40, 43));
-		g.fillRoundedRectangle(x, y, width, height, cornerSize);
-		g.setColour(Colour(22, 25, 30));
-		g.drawRoundedRectangle(x, y, width, height, cornerSize, thickness);
+		auto width = (float)bounds.getWidth() - 15;
+		auto height = (float)bounds.getHeight() - y;
+
+		auto thickness = 16.0f;
+		auto outerCornerSize = 8.0f;
+		auto innerCornerSize = 10.0f;
+
+
+		// shgadow
+		juce::Path outerpath;
+		outerpath.addRoundedRectangle(x, y, width, height, outerCornerSize);
+		juce::DropShadow shadow(juce::Colours::black.withAlpha(0.7f), 18, juce::Point<int>(0, 0)); //black.withAlpha(0.7f)
+		shadow.drawForPath(g, outerpath);
+
+		g.setColour(juce::Colour(147, 145, 150).withAlpha(0.0f));
+		g.fillPath(outerpath);
+
+
+
+		// outside
+		g.setColour(Colour(147, 145, 150));
+		g.fillRoundedRectangle(x, y, width, height, outerCornerSize);
+
+
+		// start of "bevel" effect 
+		auto highlightCol = juce::Colour(206, 203, 210);
+		auto transparentCol = highlightCol.withAlpha(0.0f);
+
+		float fade = 20.0f;
+
+		// left edge
+		juce::Path leftEdge;
+		leftEdge.startNewSubPath(x + 1, y + height - outerCornerSize);
+		leftEdge.lineTo(x + 1, y + outerCornerSize + 1);
+
+		juce::ColourGradient leftGrad(
+			transparentCol, x + 1, y + height - outerCornerSize,
+			highlightCol, x + 1, y + height - outerCornerSize - fade,
+			false);
+
+		g.setGradientFill(leftGrad);
+		g.strokePath(leftEdge, juce::PathStrokeType(1.f));
+
+
+		// left arc corner
+		juce::Path corner;
+		corner.addArc(x + 1, y + 1, outerCornerSize * 2.0f, outerCornerSize * 2.0f,
+			-juce::MathConstants<float>::halfPi, 0.0f, true);
+		g.setColour(highlightCol);
+		g.strokePath(corner, juce::PathStrokeType(1.f));
+
+
+		// top edge
+		juce::Path topEdge;
+		topEdge.startNewSubPath(x + outerCornerSize + 1, y + 1);
+		topEdge.lineTo(x + width - outerCornerSize, y + 1);
+
+		juce::ColourGradient topGrad(
+			highlightCol, x + width - outerCornerSize - fade, y + 1,
+			transparentCol, x + width - outerCornerSize, y + 1,
+			false);
+
+		g.setGradientFill(topGrad);
+		g.strokePath(topEdge, juce::PathStrokeType(1.5f));
+
+		// end of bevel 
+
+		// inside
+		g.setColour(Colour(32, 33, 40));
+		g.fillRoundedRectangle(x + thickness - 4,
+			y + thickness + 15,
+			width - (thickness * 1.5f),
+			height - (thickness * 2.7f),
+			innerCornerSize);
+
+
 
 
 	}
@@ -84,16 +152,84 @@ static void paintHeader(Graphics& g, Rectangle<int> bounds, std::string text) {
 
 static void paintHeaderEffects(Graphics& g, Rectangle<int> bounds, std::string text) {
 	{ // 枠の描画
-		auto x = 0.0f,
+		auto x = 10.0f,
 			y = HEADER_HEIGHT - 2;
-		auto width = (float)bounds.getWidth(),
-			height = (float)bounds.getHeight() - y;
-		auto cornerSize = 9.0f,
-			thickness = 0.0f;
-		g.setColour(Colour(36, 40, 43));
-		g.fillRoundedRectangle(x, y, width, height, cornerSize);
-		g.setColour(Colour(22, 25, 30));
-		g.drawRoundedRectangle(x, y, width, height, cornerSize, thickness);
+		auto width = (float)bounds.getWidth() - 15;
+		auto height = (float)bounds.getHeight() - y;
+
+		auto thickness = 16.0f;
+		auto outerCornerSize = 8.0f;
+		auto innerCornerSize = 10.0f;
+
+
+		// shgadow
+		juce::Path outerpath;
+		outerpath.addRoundedRectangle(x, y, width, height, outerCornerSize);
+		juce::DropShadow shadow(juce::Colours::black.withAlpha(0.7f), 18, juce::Point<int>(0, 0)); //black.withAlpha(0.7f)
+		shadow.drawForPath(g, outerpath);
+
+		g.setColour(juce::Colour(147, 145, 150).withAlpha(0.0f));
+		g.fillPath(outerpath);
+
+
+
+		// outside
+		g.setColour(Colour(147, 145, 150));
+		g.fillRoundedRectangle(x, y, width, height, outerCornerSize);
+
+
+		// start of "bevel" effect 
+		auto highlightCol = juce::Colour(206, 203, 210);
+		auto transparentCol = highlightCol.withAlpha(0.0f);
+
+		float fade = 20.0f;
+
+		// left edge
+		juce::Path leftEdge;
+		leftEdge.startNewSubPath(x + 1, y + height - outerCornerSize);
+		leftEdge.lineTo(x + 1, y + outerCornerSize + 1);
+
+		juce::ColourGradient leftGrad(
+			transparentCol, x + 1, y + height - outerCornerSize,
+			highlightCol, x + 1, y + height - outerCornerSize - fade,
+			false);
+
+		g.setGradientFill(leftGrad);
+		g.strokePath(leftEdge, juce::PathStrokeType(1.f));
+
+
+		// left arc corner
+		juce::Path corner;
+		corner.addArc(x + 1, y + 1, outerCornerSize * 2.0f, outerCornerSize * 2.0f,
+			-juce::MathConstants<float>::halfPi, 0.0f, true);
+		g.setColour(highlightCol);
+		g.strokePath(corner, juce::PathStrokeType(1.f));
+
+
+		// top edge
+		juce::Path topEdge;
+		topEdge.startNewSubPath(x + outerCornerSize + 1, y + 1);
+		topEdge.lineTo(x + width - outerCornerSize, y + 1);
+
+		juce::ColourGradient topGrad(
+			highlightCol, x + width - outerCornerSize - fade, y + 1,
+			transparentCol, x + width - outerCornerSize, y + 1,
+			false);
+
+		g.setGradientFill(topGrad);
+		g.strokePath(topEdge, juce::PathStrokeType(1.5f));
+
+		// end of bevel 
+
+		// inside
+		g.setColour(Colour(32, 33, 40));
+		g.fillRoundedRectangle(x + thickness - 4,
+			y + thickness + 15,
+			width - (thickness * 1.5f),
+			height - (thickness * 2.7f),
+			innerCornerSize);
+
+
 
 
 	}
@@ -111,6 +247,72 @@ static void paintHeaderEffects(Graphics& g, Rectangle<int> bounds, std::string t
 		g.drawText(text, x, y, width, height, Justification::centred, false);
 	}
 }
+
+
+
+
+
+
+
+
+
+static void paintHeaderVoicing(Graphics& g, Rectangle<int> bounds, std::string text) {
+	{ // 枠の描画
+		auto x = 10.0f,
+			y = HEADER_HEIGHT - 2;
+		auto width = (float)bounds.getWidth() - 15;
+		auto height = (float)bounds.getHeight() - y;
+
+		auto thickness = 16.0f;
+		auto outerCornerSize = 8.0f;
+		auto innerCornerSize = 10.0f;
+
+
+		// shgadow
+		//juce::Path outerpath;
+		//outerpath.addRoundedRectangle(x, y, width, height, outerCornerSize);
+		//juce::DropShadow shadow(juce::Colours::black.withAlpha(0.7f), 18, juce::Point<int>(0, 0)); //black.withAlpha(0.7f)
+		//shadow.drawForPath(g, outerpath);
+
+		//g.setColour(juce::Colour(147, 145, 150).withAlpha(0.0f));
+		//g.fillPath(outerpath);
+
+
+
+		// outside
+		g.setColour(Colour(147, 145, 150).withAlpha(0.0f));
+		g.fillRoundedRectangle(x, y, width, height, outerCornerSize);
+
+
+
+		// inside
+		g.setColour(Colour(32, 33, 40));
+		g.fillRoundedRectangle(x + thickness - 4,
+			y + thickness + 15,
+			width - (thickness * 1.5f),
+			height - (thickness * 2.7f),
+			innerCornerSize);
+
+
+
+
+	}
+
+	{ // ヘッダー描画
+		g.setFont(ProjectFonts::headerFont(32.0f));
+		auto x = 1.f,
+			y = -5.0f;
+		auto width = (float)g.getCurrentFont().getStringWidth(text),
+			height = HEADER_HEIGHT;
+
+		g.setColour(BACKGROUND_COLOUR());
+		g.fillRect(x, y, width, height);
+		g.setColour(Colour(165, 178, 184));
+		g.drawText(text, x, y, width, height, Justification::centred, false);
+	}
+}
+
+
 
 
 static void paintHeaderWaveFormMemory(Graphics& g, Rectangle<int> bounds, std::string text) {
@@ -198,12 +400,12 @@ static void loadWaveFile(WaveformMemoryParameters* _waveformMemoryParamsPtr,
 ChipOscillatorComponent::ChipOscillatorComponent(ChipOscillatorParameters* oscParams, WaveformMemoryParameters* waveformMemoryParams)
 	: _oscParamsPtr(oscParams),
 	_waveformMemoryParamsPtr(waveformMemoryParams),
-	waveTypeSelector("Waves", _oscParamsPtr->OscWaveType, this),
-	volumeLevelSlider("Volume", "dB", _oscParamsPtr->VolumeLevel, this, 0.01f),
-	attackSlider("Attack", "sec", _oscParamsPtr->Attack, this, MIN_DELTA, 1.0f),
-	decaySlider("Decay", "sec", _oscParamsPtr->Decay, this, MIN_DELTA, 1.0f),
-	sustainSlider("Sustain", "", _oscParamsPtr->Sustain, this, MIN_DELTA),
-	releaseSlider("Release", "sec", _oscParamsPtr->Release, this, MIN_DELTA, 1.0f) {
+	waveTypeSelector("WAVES", _oscParamsPtr->OscWaveType, this),
+	volumeLevelSlider("VOL", "dB", _oscParamsPtr->VolumeLevel, this, 0.01f),
+	attackSlider("ATT", "sec", _oscParamsPtr->Attack, this, MIN_DELTA, 1.0f),
+	decaySlider("DEC", "sec", _oscParamsPtr->Decay, this, MIN_DELTA, 1.0f),
+	sustainSlider("SUS", "sec", _oscParamsPtr->Sustain, this, MIN_DELTA),
+	releaseSlider("REL", "sec", _oscParamsPtr->Release, this, MIN_DELTA, 1.0f) {
 	//colorTypeSelector("Arp", _oscParamsPtr->ColorType, this),
 	//colorDurationSlider("Duration", "sec", _oscParamsPtr->ColorDuration, this, MIN_DELTA, 0.2f) 
 
@@ -222,22 +424,46 @@ ChipOscillatorComponent::ChipOscillatorComponent(ChipOscillatorParameters* oscPa
 }
 
 void ChipOscillatorComponent::paint(Graphics& g) {
-	paintHeader(g, getLocalBounds(), "Waves");
+	paintHeader(g, getLocalBounds(), "");
+
+
+
 }
 
 void ChipOscillatorComponent::resized() {
-	float rowSize = 6.0f;
-	auto compHeight = ((getHeight() - HEADER_HEIGHT) / rowSize);
+	//float rowSize = 8.0f;
+	//auto compHeight = ((getHeight() - HEADER_HEIGHT) / rowSize);
 
-	Rectangle<int> bounds = getLocalBounds();  // コンポーネント基準の値
-	bounds.removeFromTop(HEADER_HEIGHT);
+	//Rectangle<int> bounds = getLocalBounds();  // コンポーネント基準の値
+	//bounds.removeFromTop(HEADER_HEIGHT);
 
-	waveTypeSelector.setBounds(bounds.removeFromTop(compHeight));
+	//waveTypeSelector.setBounds(bounds.removeFromTop(HEADER_HEIGHT));
+	//compHeight / 2;
+	//volumeLevelSlider.setBounds(bounds.removeFromTop(compHeight));
+	//attackSlider.setBounds(bounds.removeFromTop(compHeight));
+	//decaySlider.setBounds(bounds.removeFromTop(compHeight));
+	//sustainSlider.setBounds(bounds.removeFromTop(compHeight));
+	//releaseSlider.setBounds(bounds.removeFromTop(compHeight));
+
+
+	auto bounds = getLocalBounds();
+
+	auto headerArea = bounds.removeFromTop(HEADER_HEIGHT + 35);
+	waveTypeSelector.setBounds(headerArea.withTrimmedTop(20).withTrimmedLeft(24));
+
+	int margin = 20;
+	bounds.reduce(margin, margin);
+
+	float rowSize = 10.0f;
+	auto compHeight = bounds.getHeight() / rowSize;
+
 	volumeLevelSlider.setBounds(bounds.removeFromTop(compHeight));
 	attackSlider.setBounds(bounds.removeFromTop(compHeight));
 	decaySlider.setBounds(bounds.removeFromTop(compHeight));
 	sustainSlider.setBounds(bounds.removeFromTop(compHeight));
 	releaseSlider.setBounds(bounds.removeFromTop(compHeight));
+
+
 	/*{
 	  auto area = bounds.removeFromTop(compHeight);
 	  auto width = area.getWidth() / 2.0f;
@@ -359,21 +585,21 @@ void ChipOscillatorComponent::comboBoxChanged(ComboBox* comboBoxThatHasChanged) 
 
 SweepParametersComponent::SweepParametersComponent(SweepParameters* sweepParams)
 	: _sweepParamsPtr(sweepParams),
-	sweepSwitchSelector("SweepType", _sweepParamsPtr->SweepSwitch, this),
-	timeSlider("Speed", "sec", _sweepParamsPtr->SweepTime, this, 0.01f, 1.0f) {
+	sweepSwitchSelector("SWEEP", _sweepParamsPtr->SweepSwitch, this),
+	timeSlider("SPEED", "sec", _sweepParamsPtr->SweepTime, this, 0.01f, 1.0f) {
 	addAndMakeVisible(sweepSwitchSelector);
 	addAndMakeVisible(timeSlider);
 }
 
 void SweepParametersComponent::paint(Graphics& g) {
-	paintHeaderEffects(g, getLocalBounds(), "PITCH SWEEP");
+	paintHeaderVoicing(g, getLocalBounds(), "");
 }
 
 void SweepParametersComponent::resized() {
 	float rowSize = 1.0f;
 	float divide = 1.0f / rowSize;
 	std::int32_t compHeight =
-		std::int32_t((getHeight() - HEADER_HEIGHT) * divide);
+		std::int32_t((getHeight() - HEADER_HEIGHT));
 
 	Rectangle<int> bounds = getLocalBounds();  // コンポーネント基準の値
 	bounds.removeFromTop(HEADER_HEIGHT);
@@ -382,8 +608,17 @@ void SweepParametersComponent::resized() {
 		float alpha = isEditable() ? 1.0f : 0.4f;
 		timeSlider.setAlpha(alpha);
 	}
-	sweepSwitchSelector.setBounds(bounds.removeFromTop(compHeight * 0.6f));
-	timeSlider.setBounds(bounds.removeFromTop(compHeight));
+
+	{
+
+		int margin = 30;
+		int y = -18;
+		sweepSwitchSelector.setBounds(bounds.removeFromTop(compHeight * 0.3f).translated(25, -4));
+		timeSlider.setBounds(bounds.removeFromTop(compHeight).reduced(margin, 10).translated(0, y));
+
+
+
+	}
 }
 
 void SweepParametersComponent::timerCallback() {
@@ -410,14 +645,114 @@ bool SweepParametersComponent::isEditable() {
 	return (_sweepParamsPtr->SweepSwitch->getIndex() >= 1) ? true : false;
 }
 
+
+
+
+
+static void paintHeaderVibrato(Graphics& g, Rectangle<int> bounds, std::string text, int innerboxheight, bool hasoutline, bool istop) {
+	auto x = 10.0f;
+	auto y = (float)HEADER_HEIGHT - 2.0f;
+	auto width = (float)bounds.getWidth() - 15.0f;
+	auto height = (float)bounds.getHeight() - y;
+
+	auto thickness = 16.0f;
+	auto outerCornerSize = 8.0f;
+	auto innerCornerSize = 10.0f;
+
+	// shadow
+
+	// grey rectangle
+	if (istop) {
+		juce::Path outerpath;
+		outerpath.addRoundedRectangle(x, y, width, height, outerCornerSize);
+		juce::DropShadow shadow(juce::Colours::black.withAlpha(0.7f), 18, juce::Point<int>(0, 0));
+		shadow.drawForPath(g, outerpath);
+
+		g.setColour(Colour(147, 145, 150));
+		g.fillRoundedRectangle(x, y, width, height, outerCornerSize);
+
+		// start of bevel effect
+		auto highlightCol = juce::Colour(206, 203, 210);
+		auto transparentCol = highlightCol.withAlpha(0.0f);
+		float fade = 20.0f;
+
+		juce::Path leftEdge;
+		leftEdge.startNewSubPath(x + 1, y + height - outerCornerSize);
+		leftEdge.lineTo(x + 1, y + outerCornerSize + 1);
+
+		juce::ColourGradient leftGrad(
+			transparentCol, x + 1, y + height - outerCornerSize,
+			highlightCol, x + 1, y + height - outerCornerSize - fade,
+			false);
+
+		g.setGradientFill(leftGrad);
+		g.strokePath(leftEdge, juce::PathStrokeType(1.f));
+
+		juce::Path corner;
+		corner.addArc(x + 1, y + 1, outerCornerSize * 2.0f, outerCornerSize * 2.0f,
+			-juce::MathConstants<float>::halfPi, 0.0f, true);
+		g.setColour(highlightCol);
+		g.strokePath(corner, juce::PathStrokeType(1.f));
+
+		juce::Path topEdge;
+		topEdge.startNewSubPath(x + outerCornerSize + 1, y + 1);
+		topEdge.lineTo(x + width - outerCornerSize, y + 1);
+
+		juce::ColourGradient topGrad(
+			highlightCol, x + width - outerCornerSize - fade, y + 1,
+			transparentCol, x + width - outerCornerSize, y + 1,
+			false);
+
+		g.setGradientFill(topGrad);
+		g.strokePath(topEdge, juce::PathStrokeType(1.5f));
+		// end of bevel 
+	}
+	else {
+		g.setColour(Colour(147, 145, 150).withAlpha(0.0f));
+		g.fillRoundedRectangle(x, y, width, height, outerCornerSize);
+	}
+	float innerY = y + thickness + 15.0f;
+	g.setColour(Colour(32, 33, 40));
+	g.fillRoundedRectangle(x + thickness - 4,
+		innerY,
+		width - (thickness * 1.5f),
+		innerboxheight,
+		innerCornerSize);
+
+	// text
+	float textSectionWidth = width / 6.0f;
+	float topBarHeight = innerY - y;
+
+	g.setFont(ProjectFonts::semiboldFont(30.0f));
+	g.setColour(Colour(32, 33, 40));
+	g.drawText(text, x + 22, y, textSectionWidth, topBarHeight,
+		Justification::centred, false);
+
+	float dividerX = x + textSectionWidth + 30;
+
+
+	if (hasoutline) {
+
+		g.setColour(Colour(99, 97, 102));
+		g.drawLine(dividerX - 1.0f, y, dividerX - 1.0f, y + topBarHeight, 1.0f);
+
+		g.setColour(Colour(15, 19, 21));
+		g.drawLine(dividerX, y, dividerX, y + topBarHeight, 1.0f);
+
+		g.setColour(Colour(177, 174, 180));
+		g.drawLine(dividerX + 1.0f, y, dividerX + 1.0f, y + topBarHeight, 1.0f);
+	}
+}
+
+
 VibratoParametersComponent::VibratoParametersComponent(
 	VibratoParameters* vibratoParams)
 	: _vibratoParamsPtr(vibratoParams),
-	enableSwitch("On", _vibratoParamsPtr->VibratoEnable, this),
+	enableSwitch("ON", _vibratoParamsPtr->VibratoEnable, this),
 	attackDeleySwitch("Attack-Deley-Switch", _vibratoParamsPtr->VibratoAttackDeleySwitch, this),
-	amountSlider("Depth", "HarfTone", _vibratoParamsPtr->VibratoAmount, this, MIN_DELTA, 2.0f),
-	speedSlider("Speed", "hz", _vibratoParamsPtr->VibratoSpeed, this, MIN_DELTA, 10.0f),
-	attackDeleyTimeSlider("Attack", "sec", _vibratoParamsPtr->VibratoAttackTime, this, 0.001f, 2.0f) {
+	amountSlider("DEP", "Tone", _vibratoParamsPtr->VibratoAmount, this, MIN_DELTA, 2.0f),
+	speedSlider("SPD", "hz", _vibratoParamsPtr->VibratoSpeed, this, MIN_DELTA, 10.0f),
+	attackDeleyTimeSlider("ATT", "sec", _vibratoParamsPtr->VibratoAttackTime, this, 0.001f, 2.0f) {
 	addAndMakeVisible(enableSwitch);
 	addAndMakeVisible(attackDeleySwitch);
 	addAndMakeVisible(amountSlider);
@@ -425,40 +760,52 @@ VibratoParametersComponent::VibratoParametersComponent(
 	addAndMakeVisible(attackDeleyTimeSlider);
 
 	// 切り替えSwitchのカスタマイズ
-	{ attackDeleySwitch.button.setButtonText("Attack / Delay"); }
+	{ attackDeleySwitch.button.setButtonText("ATTACK"); }
 }
 
 void VibratoParametersComponent::paint(Graphics& g) {
-	paintHeaderEffects(g, getLocalBounds(), "VIBRATO");
+	paintHeaderVibrato(g, getLocalBounds(), "VIBRATO", 189, true, true);
 }
 
 void VibratoParametersComponent::resized() {
-	float rowSize = 4.0f;
+	float rowSize = 11.0f;
 	float divide = 1.0f / rowSize;
 	std::int32_t compHeight = std::int32_t((getHeight() - HEADER_HEIGHT) * divide);
-	Rectangle<int> bounds = getLocalBounds();  // コンポーネント基準の値
+	Rectangle<int> bounds = getLocalBounds();
 	bounds.removeFromTop(HEADER_HEIGHT);
+
 	{
 		float alpha = isEditable() ? 1.0f : 0.4f;
 		amountSlider.setAlpha(alpha);
 		speedSlider.setAlpha(alpha);
 		attackDeleyTimeSlider.setAlpha(alpha);
 	}
-	{
-		auto b = bounds.removeFromTop(compHeight);
-		enableSwitch.setBounds(b.removeFromLeft(b.getWidth() * 0.3f));
-		attackDeleySwitch.setBounds(b);
-	}
-	amountSlider.setBounds(bounds.removeFromTop(compHeight));
-	speedSlider.setBounds(bounds.removeFromTop(compHeight));
-	attackDeleyTimeSlider.setBounds(bounds.removeFromTop(compHeight));
 
-	//切り替えスイッチ処理
+	{
+		auto b = bounds.removeFromTop(compHeight - 9);
+		float startX = 10.0f;
+		float headerWidth = getWidth() - 15.0f;
+		float textSectionWidth = headerWidth / 6.0f;
+		float skipSpace = startX + textSectionWidth + 30.0f + 2.0f;
+		b.removeFromLeft(skipSpace);
+		int onButtonWidth = 80;
+		int attackButtonWidth = 115;
+		// im just going to hard code the spaces because im tired, ui is so tiring
+		enableSwitch.setBounds(b.removeFromLeft(onButtonWidth).removeFromTop(48).translated(10, -2));
+		attackDeleySwitch.setBounds(b.removeFromLeft(attackButtonWidth).removeFromTop(48).translated(20, -2));
+	}
+
+	int margin = 30;
+	int y = 20;
+	amountSlider.setBounds(bounds.removeFromTop(compHeight).reduced(margin, 0).translated(0, y));
+	speedSlider.setBounds(bounds.removeFromTop(compHeight).reduced(margin, 0).translated(0, y));
+	attackDeleyTimeSlider.setBounds(bounds.removeFromTop(compHeight).reduced(margin, 0).translated(0, y));
+
 	if (_vibratoParamsPtr->VibratoAttackDeleySwitch->get() == true) {
-		attackDeleyTimeSlider.label.setText("Attack", dontSendNotification);
+		attackDeleyTimeSlider.label.setText("ATT", dontSendNotification);
 	}
 	else {
-		attackDeleyTimeSlider.label.setText("Delay", dontSendNotification);
+		attackDeleyTimeSlider.label.setText("DEL", dontSendNotification);
 	}
 }
 
@@ -502,19 +849,19 @@ bool VibratoParametersComponent::isEditable() {
 VoicingParametersComponent::VoicingParametersComponent(
 	VoicingParameters* voicingParams)
 	: _voicingParamsPtr(voicingParams),
-	voicingTypeSelector("Type", _voicingParamsPtr->VoicingSwitch, this),
-	stepTimeSlider("StepTime", "sec", _voicingParamsPtr->StepTime, this,
+	voicingTypeSelector("VOICING", _voicingParamsPtr->VoicingSwitch, this),
+	stepTimeSlider("STEP", "sec", _voicingParamsPtr->StepTime, this,
 		0.001f, 0.5f) {
 	addAndMakeVisible(voicingTypeSelector);
 	addAndMakeVisible(stepTimeSlider);
 }
 
 void VoicingParametersComponent::paint(Graphics& g) {
-	paintHeaderEffects(g, getLocalBounds(), "VOICING");
+	paintHeaderVoicing(g, getLocalBounds(), "");
 }
 
 void VoicingParametersComponent::resized() {
-	float rowSize = 2.0f;
+	float rowSize = 3.0f;
 	float divide = 1.0f / rowSize;
 	std::int32_t compHeight =
 		std::int32_t((getHeight() - HEADER_HEIGHT) * divide);
@@ -535,8 +882,10 @@ void VoicingParametersComponent::resized() {
 		}
 		stepTimeSlider.setAlpha(alpha);
 	}
-	voicingTypeSelector.setBounds(bounds.removeFromTop(compHeight));
-	stepTimeSlider.setBounds(bounds.removeFromTop(compHeight));
+
+	int margin = 30;
+	voicingTypeSelector.setBounds(bounds.removeFromTop(compHeight).translated(25, -4));
+	stepTimeSlider.setBounds(bounds.removeFromTop(compHeight).reduced(margin, 10));
 }
 
 void VoicingParametersComponent::timerCallback() {
@@ -563,23 +912,40 @@ OptionsParametersComponent::OptionsParametersComponent(
 	OptionsParameters* optionsParams
 )
 	: _optionsParamsPtr(optionsParams),
-	pitchStandardSlider("Tunes", "", _optionsParamsPtr->PitchStandard, this),
-	pitchBendRangeSlider("PB Range", "", _optionsParamsPtr->PitchBendRange, this) {
+	pitchStandardSlider("TUNE", "", _optionsParamsPtr->PitchStandard, this),
+	pitchBendRangeSlider("PB RANGE", "", _optionsParamsPtr->PitchBendRange, this)
+{
+
+	//pitchStandardSlider.setLookAndFeel(&IncButtonLook);
 	addAndMakeVisible(pitchStandardSlider);
 	addAndMakeVisible(pitchBendRangeSlider);
 }
 
+OptionsParametersComponent::~OptionsParametersComponent()
+{
+	pitchStandardSlider.setLookAndFeel(nullptr);
+}
+
 void OptionsParametersComponent::paint(Graphics& g) {
-	paintHeaderEffects(g, getLocalBounds(), "OPTIONS");
+	paintHeaderVibrato(g, getLocalBounds(), "OPTIONS", 155, false, true);
 }
 
 void OptionsParametersComponent::resized() {
+
+
+	float rowSize = 10.0f;
+	float divide = 1.0f / rowSize;
+	std::int32_t compHeight =
+		std::int32_t((getHeight() - HEADER_HEIGHT) * divide);
+
 	Rectangle<int> bounds = getLocalBounds();
 	bounds.removeFromTop(HEADER_HEIGHT);
-	std::int32_t compHeight = (getHeight() - HEADER_HEIGHT) / 2.0f;
+	//std::int32_t compHeight = (getHeight() - HEADER_HEIGHT) / 2.0f;
 
-	pitchStandardSlider.setBounds(bounds.removeFromTop(compHeight));
-	pitchBendRangeSlider.setBounds(bounds.removeFromTop(compHeight));
+
+	int margin = 30;
+	pitchStandardSlider.setBounds(bounds.removeFromTop(compHeight).reduced(margin, 10).translated(0, 52));
+	pitchBendRangeSlider.setBounds(bounds.removeFromTop(compHeight).reduced(margin, 10).translated(0, 52));
 }
 
 void OptionsParametersComponent::timerCallback() {
@@ -598,12 +964,74 @@ void OptionsParametersComponent::sliderValueChanged(Slider* slider) {
 	}
 }
 
+static void paintHeaderARPS(Graphics& g, Rectangle<int> bounds, std::string text) {
+	auto x = 0.0f;
+	auto y = 0.0f;
+	auto width = (float)bounds.getWidth();
+	auto height = (float)bounds.getHeight();
+	auto thickness = 2.0f;
+
+	float bottomPanelHeight = 40.0f;
+
+	g.setColour(Colour(26, 33, 38)); //26, 33, 38
+	g.drawRoundedRectangle(x, y + 24, width, height / 1.08, 0.f, thickness);
+
+	g.setColour(Colour(147, 145, 150));
+	juce::Path p;
+	p.addRoundedRectangle(x, height - bottomPanelHeight, width, bottomPanelHeight,
+		6.0f, 6.0f,
+		false, false, true, true);
+	g.fillPath(p);
+	float textSectionWidth = width / 6.0f;
+
+	g.setFont(ProjectFonts::boldFont(28.0f));
+	g.setColour(Colour(32, 33, 40));
+
+	g.drawText(text, x, height - bottomPanelHeight, textSectionWidth, bottomPanelHeight,
+		Justification::centred, false);
+
+	auto highlightCol = juce::Colour(206, 203, 210);
+
+	// left edge highlight
+	juce::Path leftEdge;
+	leftEdge.startNewSubPath(x + 1, height - 6.0);
+	leftEdge.lineTo(x + 1, (height / 1.09));
+	g.setColour(highlightCol);
+	g.strokePath(leftEdge, juce::PathStrokeType(1.f));
+
+	// left bottom arc highlight
+	juce::Path corner;
+	corner.addArc(x + 1, height - 12,
+		6.0 * 2.0f,
+		6.0 * 2.0f,
+		-juce::MathConstants<float>::halfPi,
+		-juce::MathConstants<float>::pi, true);
+
+	g.setColour(highlightCol);
+	g.strokePath(corner, juce::PathStrokeType(1.f));
+
+	// extra line before "on"
+	float dividerX = textSectionWidth - 5;
+	float startY = (height - bottomPanelHeight);
+	float lineLength = bottomPanelHeight;
+
+	g.setColour(Colour(15, 19, 21));
+	g.fillRect(dividerX, startY, 1.0f, lineLength);
+
+	g.setColour(Colour(99, 97, 102));
+	g.fillRect(dividerX - 1.f, startY, 1.0f, lineLength);
+
+	g.setColour(Colour(177, 174, 180));
+	g.fillRect(dividerX + 1.0f, startY, 1.0f, lineLength);
+
+}
+
 ArpSequencerComponent::ArpSequencerComponent(ArpParameters* arpParameters)
 	: BaseComponent(),
 	_arpParameters(arpParameters),
-	_enableSwitch("On", _arpParameters->ArpEnabled, this),
-	_loopSwitch("Loop", _arpParameters->LoopEnabled, this),
-	_stepTimeSlider("Duration", "sec", _arpParameters->ArpStepTime, this, MIN_DELTA, 0.25f),
+	_enableSwitch("ON", _arpParameters->ArpEnabled, this),
+	_loopSwitch("LOOP", _arpParameters->LoopEnabled, this),
+	_stepTimeSlider("DURATION", "sec", _arpParameters->ArpStepTime, this, MIN_DELTA, 0.25f),
 	_rangeSliders(_arpParameters) {
 
 	addAndMakeVisible(_enableSwitch);
@@ -613,21 +1041,21 @@ ArpSequencerComponent::ArpSequencerComponent(ArpParameters* arpParameters)
 }
 
 void ArpSequencerComponent::paint(Graphics& g) {
-	paintHeaderWaveFormMemory(g, getLocalBounds(), "ARPS");
+	paintHeaderARPS(g, getLocalBounds(), "ARPS");
 }
 
 void ArpSequencerComponent::resized() {
 	Rectangle<int> bounds = getLocalBounds();
 	bounds.removeFromTop(HEADER_HEIGHT);
+	int bottomStripHeight = 40;
+	auto area = bounds.removeFromBottom(bottomStripHeight);
 
-	{
-		auto area = bounds.removeFromBottom(40);
-		auto width = area.getWidth() / 4.0f;
-		_enableSwitch.setBounds(area.removeFromLeft(width).reduced(LOCAL_MARGIN));
-		_loopSwitch.setBounds(area.removeFromLeft(width).reduced(LOCAL_MARGIN));
-		_stepTimeSlider.setBounds(area.reduced(LOCAL_MARGIN));
-	}
+	auto width = area.getWidth() / 6.0f;
+	area.removeFromLeft(width);
 
+	_enableSwitch.setBounds(area.removeFromLeft(width - 14));
+	_loopSwitch.setBounds(area.removeFromLeft(width));
+	_stepTimeSlider.setBounds(area.reduced(LOCAL_MARGIN));
 	_rangeSliders.setBounds(bounds.reduced(LOCAL_MARGIN));
 }
 
@@ -771,15 +1199,15 @@ WaveformMemoryParametersComponent::WaveformMemoryParametersComponent(
 	addAndMakeVisible(nextButton);
 
 
-	saveButton.setButtonText("Save");
+	saveButton.setButtonText("SAVE");
 	saveButton.addListener(this);
 	addAndMakeVisible(saveButton);
 
-	loadButton.setButtonText("Load");
+	loadButton.setButtonText("LOAD");
 	loadButton.addListener(this);
 	addAndMakeVisible(loadButton);
 
-	fileBrowserButton.setButtonText("Browse");
+	fileBrowserButton.setButtonText("BROWSE");
 	fileBrowserButton.addListener(this);
 	addAndMakeVisible(fileBrowserButton);
 
@@ -979,15 +1407,13 @@ void WaveformMemoryParametersComponent::setWaveformIndex(int index) {
 
 // ----------------------------------------------------------------------------------
 
-
-
 FilterParametersComponent::FilterParametersComponent(FilterParameters* filterParams)
 	: BaseComponent(),
 	_filterParamsPtr(filterParams),
-	hiCutSwitch("HiCut: ON / OFF", _filterParamsPtr->HicutEnable, this),
-	lowCutSwitch("LowCut: ON / OFF", _filterParamsPtr->LowcutEnable, this),
-	hicutFreqSlider("hicut", "Hz", _filterParamsPtr->HicutFreq, this, 0.1f, 2000.0f),
-	lowcutFreqSlider("lowcut", "Hz", _filterParamsPtr->LowcutFreq, this, 0.1f, 2000.0f) {
+	hiCutSwitch("HICUT", _filterParamsPtr->HicutEnable, this),
+	lowCutSwitch("LOWCUT", _filterParamsPtr->LowcutEnable, this),
+	hicutFreqSlider("", "Hz", _filterParamsPtr->HicutFreq, this, 0.1f, 2000.0f),
+	lowcutFreqSlider("", "Hz", _filterParamsPtr->LowcutFreq, this, 0.1f, 2000.0f) {
 	addAndMakeVisible(hiCutSwitch);
 	addAndMakeVisible(lowCutSwitch);
 	addAndMakeVisible(hicutFreqSlider);
@@ -995,11 +1421,11 @@ FilterParametersComponent::FilterParametersComponent(FilterParameters* filterPar
 }
 
 void FilterParametersComponent::paint(Graphics& g) {
-	paintHeaderEffects(g, getLocalBounds(), "FILTER");
+	paintHeaderVibrato(g, getLocalBounds(), "FILTER", 225, false, false);
 }
 
 void FilterParametersComponent::resized() {
-	float rowSize = 4.0f;
+	float rowSize = 6.0f;
 	float divide = 1.0f / rowSize;
 	std::int32_t compHeight =
 		std::int32_t((getHeight() - HEADER_HEIGHT) * divide);
@@ -1016,10 +1442,12 @@ void FilterParametersComponent::resized() {
 		lowcutFreqSlider.setAlpha(alpha);
 	}
 
-	hiCutSwitch.setBounds(bounds.removeFromTop(compHeight));
-	hicutFreqSlider.setBounds(bounds.removeFromTop(compHeight));
-	lowCutSwitch.setBounds(bounds.removeFromTop(compHeight));
-	lowcutFreqSlider.setBounds(bounds.removeFromTop(compHeight));
+	int margin = 30;
+
+	hiCutSwitch.setBounds(bounds.removeFromTop(compHeight).reduced(margin, 10).translated(0, 52));
+	hicutFreqSlider.setBounds(bounds.removeFromTop(compHeight).reduced(margin, 10).translated(0, 52));
+	lowCutSwitch.setBounds(bounds.removeFromTop(compHeight).reduced(margin, 10).translated(0, 52));
+	lowcutFreqSlider.setBounds(bounds.removeFromTop(compHeight).reduced(margin, 10).translated(0, 52));
 }
 
 void FilterParametersComponent::timerCallback() {
@@ -1046,6 +1474,9 @@ void FilterParametersComponent::buttonClicked(Button* button) {
 	resized();
 }
 
+// wavepatterns
+
+// ==============================================================================================================================
 
 WavePatternsComponent::WavePatternsComponent(WavePatternParameters* wavePatternParameters,
 	ChipOscillatorParameters* chipOscParams,
@@ -1054,9 +1485,9 @@ WavePatternsComponent::WavePatternsComponent(WavePatternParameters* wavePatternP
 	_wavePatternParameters(wavePatternParameters),
 	_chipOscParamsPtr(chipOscParams),
 	_waveformMemoryParamsPtr(waveformMemoryParams),
-	_enableSwitch("On", _wavePatternParameters->PatternEnabled, this),
-	_loopSwitch("Loop", _wavePatternParameters->LoopEnabled, this),
-	_stepTimeSlider("Duration", "sec", _wavePatternParameters->StepTime, this, MIN_DELTA, 0.25f),
+	_enableSwitch("ON", _wavePatternParameters->PatternEnabled, this),
+	_loopSwitch("LOOP", _wavePatternParameters->LoopEnabled, this),
+	_stepTimeSlider("DURATION", "sec", _wavePatternParameters->StepTime, this, MIN_DELTA, 0.25f),
 	_rangeSliders(_wavePatternParameters) {
 	StringArray availableWaveforms;
 	availableWaveforms.add("NES_Square50%");
@@ -1084,7 +1515,7 @@ WavePatternsComponent::WavePatternsComponent(WavePatternParameters* wavePatternP
 		}
 	}
 	for (auto i = 0; i < WAVEPATTERN_TYPES; ++i) {
-		_waveTypeSelectors[i] = new TextSelector("", availableWaveforms, this);
+		_waveTypeSelectors[i] = new TextSelectorSmall("", availableWaveforms, this);
 		_waveTypeSelectors[i]->removeLabel();
 		int currentWaveIndex = _wavePatternParameters->WaveTypes[i]->get();
 		_waveTypeSelectors[i]->setSelectedItemIndex(currentWaveIndex);
@@ -1100,27 +1531,52 @@ WavePatternsComponent::WavePatternsComponent(WavePatternParameters* wavePatternP
 
 
 void WavePatternsComponent::paint(Graphics& g) {
-	paintHeader(g, getLocalBounds(), "WavePatterns");
+	paintHeader(g, getLocalBounds(), "");
 }
 
 void WavePatternsComponent::resized() {
 	Rectangle<int> bounds = getLocalBounds();
+
 	bounds.removeFromTop(HEADER_HEIGHT);
+
+	bounds.removeFromLeft(14);
+	bounds.removeFromRight(24);
+	bounds.removeFromTop(2);
+	//bounds.removeFromBottom(4);
+
 	{
-		auto area = bounds.removeFromTop(bounds.getHeight() / 12.0f);
-		auto width = area.getWidth() / 6.0f;
-		_enableSwitch.setBounds(area.removeFromLeft(width));
-		_loopSwitch.setBounds(area.removeFromLeft(width));
+		auto area = bounds.removeFromTop(31);
+		area.translate(0, -4);
+		auto switchWidth = 85;
+
+		_enableSwitch.setBounds(area.removeFromLeft(switchWidth - 10));
+		_loopSwitch.setBounds(area.removeFromLeft(switchWidth));
+		area.removeFromLeft(10);
+		area.removeFromRight(5);
 		_stepTimeSlider.setBounds(area);
+	}
+
+	bounds.removeFromTop(1);
+	bounds.removeFromBottom(18);
+	{
+		auto area = bounds.removeFromLeft(125);
+		area.removeFromLeft(15);
+		bounds.removeFromLeft(8);
+
+		float totalHeight = area.getHeight();
+		int startY = area.getY();
+		int x = area.getX();
+		int width = area.getWidth();
+
+		for (auto i = WAVEPATTERN_TYPES - 1; i >= 0; --i) {
+			int row = (WAVEPATTERN_TYPES - 1) - i;
+			int y = startY + (int)std::round(row * totalHeight / WAVEPATTERN_TYPES);
+			int nextY = startY + (int)std::round((row + 1) * totalHeight / WAVEPATTERN_TYPES);
+			_waveTypeSelectors[i]->setBounds(juce::Rectangle<int>(x, y, width, nextY - y).reduced(0, 1));
+		}
 
 	}
-	{
-		auto area = bounds.removeFromLeft(150);
-		auto compHeight = area.getHeight() / (float)WAVEPATTERN_TYPES;
-		for (auto i = WAVEPATTERN_TYPES - 1; i >= 0; --i) {
-			_waveTypeSelectors[i]->setBounds(area.removeFromTop(compHeight));
-		}
-	}
+
 
 	_rangeSliders.setBounds(bounds);
 }
@@ -1158,7 +1614,11 @@ void WavePatternsComponent::comboBoxChanged(ComboBox* comboBoxThatHasChanged) {
 			return;
 		}
 	}
+
+
 }
+
+
 
 
 void WavePatternsComponent::buttonClicked(Button* button) {

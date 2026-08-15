@@ -137,8 +137,8 @@ void SimpleVoice::renderNextBlock(AudioBuffer<float>& outputBuffer,
 	auto vibratoSpeed = _vibratoParamsPtr->VibratoSpeed->get();
 	auto pitchBendRange = _optionsParamsPtr->PitchBendRange->get();
 	auto isPortaMode = (_voicingParamsPtr->VoicingSwitch->getCurrentChoiceName() == "PORTAMENTO");
-	auto isPositiveSweepEnbaled = (_sweepParamsPtr->SweepSwitch->getCurrentChoiceName() == "Positive");
-	auto isNegativeSweepEnbaled = (_sweepParamsPtr->SweepSwitch->getCurrentChoiceName() == "Negative");
+	auto isPositiveSweepEnbaled = (_sweepParamsPtr->SweepSwitch->getCurrentChoiceName() == "POSITIVE");
+	auto isNegativeSweepEnbaled = (_sweepParamsPtr->SweepSwitch->getCurrentChoiceName() == "NEGATIVE");
 	auto sweepTime = (float)_sweepParamsPtr->SweepTime->get();
 	auto isPatternWaveEnabled = (float)_wavePatternParams->PatternEnabled->get();
 	auto isPatternLoopEnabled = (float)_wavePatternParams->LoopEnabled->get();
