@@ -1,8 +1,7 @@
-SANA 8BIT VST
+SANAex
 ====
 
-Overview  
-This is Simple VSTi Synthesizer for chiptune.
+A rework on SANA 8BIT, a simple VSTi Chiptune Synthesizer.
 
 ![screenshot](./ScreenShot/SANA_Screen_Shot.jpg)
 
@@ -13,6 +12,22 @@ It has a Oscillator, pitch sweep function, vibrato function and Wave scope.
 Oscillator can switch several waveforms and has ADSR function. And you can write own waveform on the WAVEFORM MEMORY component.
 
 This is a windows 32bit/64bit Application. It builded as DLL format. And you can install your DAW easily.
+
+## New Features
+Working summary from March 30th to June 29th.
+- Fixed the way cycles worked, added 16 more nodes to it, and separated it in it's own menu.
+- Added a new menu button for arpeggios, this menu lets you configure how you want your arpeggio to sound using a graph that ranges from -24 to +24.
+- Totally removed the usage of ColorEnvelope files (arp menu replaces this function).
+- In both Cycles and Arps, if you press right click you can set-up the end note or size of the current iteration.
+- Pitch bend range has been increased from 1-13 to 1-48.
+- Waveforms have increased from 1 to 20.
+- Three new buttons added for adding more waveforms or iterating through them.
+- A total rework of the UI is currently in the works.
+- New font added.
+- Noise is now affected by pitch bend, sweep, and arpeggios.
+- Oscilloscope has been upped to 240hz.
+- Instruments are now handled by using its index number instead of strings.
+
 
 ## Demo
 [![IMAGE ALT TEXT HERE](http://img.youtube.com/vi/sYuJSuVvris/0.jpg)](http://www.youtube.com/watch?v=sYuJSuVvris)
