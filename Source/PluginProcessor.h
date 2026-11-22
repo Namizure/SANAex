@@ -5,6 +5,7 @@
 #include "DSP/DspUtils.h"
 #include "DSP/SynthParameters.h"
 #include "GUI/ScopeComponent.hpp"
+#include "GUI/PresetManager.h"
 
 class PluginProcessor : public BaseAudioProcessor {
 public:
@@ -12,8 +13,6 @@ public:
 	~PluginProcessor();
 
 	AudioProcessorEditor* createEditor() override;
-
-	// プリセット用関数
 	int getNumPrograms() override;
 	int getCurrentProgram() override;
 	void setCurrentProgram(int index) override;
@@ -24,6 +23,9 @@ public:
 
 	void getStateInformation(MemoryBlock& destData) override;
 	void setStateInformation(const void* data, int sizeInBytes) override;
+	void getPresetStateInformation(MemoryBlock& destData);
+	bool isDrumModeActive() const { return presetsParameters.DrumMode->get(); }
+
 
 	MidiKeyboardState& getKeyboardState() { return keyboardState; }
 	AudioBufferQueue<float>& getAudioBufferQueue() { return scopeDataQueue; }
@@ -43,8 +45,19 @@ public:
 	WavePatternParameters wavePatternParameters;
 	ArpParameters arpParameters;
 
+	Service::PresetManager& getPresetManager() {
+		return *presetManager;
+	}
+
+	juce::AudioProcessorValueTreeState& getAPVTS() {
+		return valueTreeState;
+	}
+
+	void setCurrentProgIndex(std::int32_t index) noexcept { currentProgIndex.store(index, std::memory_order_relaxed); }
+	std::int32_t getCurrentProgIndex() const noexcept { return currentProgIndex.load(std::memory_order_relaxed); }
 
 private:
+	std::unique_ptr<XmlElement> createParametersXml();
 	void initProgram();
 	std::int32_t getNumVoices();
 	void addVoice();
@@ -56,13 +69,8 @@ private:
 
 	Synthesiser synth;
 
-	// preset index
-	std::int32_t currentProgIndex;
-
-	//アンチエイリアスフィルタ用
+	std::atomic<std::int32_t> currentProgIndex{ -1 };
 	antiAliasFilter antiAliasFilter;
-
-	// DSPエフェクト，クリッパー，ドライブ，フィルタ
 	dsp::WaveShaper<float> clipper;
 	dsp::Gain<float> drive;
 	dsp::ProcessorDuplicator<dsp::IIR::Filter<float>,
@@ -71,16 +79,14 @@ private:
 	dsp::ProcessorDuplicator<dsp::IIR::Filter<float>,
 		dsp::IIR::Coefficients<float>>
 		lowcutFilter;
-
-	// GUI上のキーボードコンポーネントで生成されたMIDI情報を保持しておくオブジェクト.
-	// MIDIキーボードの状態を同期するためのステートオブジェクト
 	MidiKeyboardState keyboardState;
-
-	// スコープパネルに波形を表示するためのデータバッファ
 	AudioBufferQueue<float> scopeDataQueue;
 	ScopeDataCollector<float> scopeDataCollector;
 
 	MidiBuffer eventsToAdd;
 
+	AudioProcessorValueTreeState valueTreeState;
+
+	std::unique_ptr<Service::PresetManager> presetManager;
 	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PluginProcessor)
 };

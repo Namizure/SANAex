@@ -5,8 +5,6 @@
 
 namespace {
 	const std::int32_t KEY_HEIGHT = 80;
-	const float KEY_WIDTH = 32.0f;
-	const float KEY_SCROLL_WIDTH = 32.0f;
 	const std::int32_t PANEL_MARGIN = 3;
 
 }
@@ -14,7 +12,7 @@ namespace {
 EditorGUI::EditorGUI(PluginProcessor& p)
 	: AudioProcessorEditor(&p),
 	processor(p),
-	keyboardComponent(p.getKeyboardState(),
+	keyboardComponent(p, p.getKeyboardState(),
 		MidiKeyboardComponent::Orientation::horizontalKeyboard),
 	OscButton("WAVES", this),
 	CycleButton("CYCLES", this),
@@ -43,7 +41,7 @@ EditorGUI::EditorGUI(PluginProcessor& p)
 
 	wavePatternsComponent(&p.wavePatternParameters, &p.chipOscParameters, &p.waveformMemoryParameters),
 	arpSequencer(&p.arpParameters),
-	scopeComponent(p.getAudioBufferQueue()) {
+	scopeComponent(p.getAudioBufferQueue()), presetPanel(p.getPresetManager(), p.getAPVTS()) {
 	/*
 			TabComponentを使いたかったが，Tabだとメモリリークが収まらないので現在の形に．
 			デストラクタ時にメモリリーク，CustomLookAndFeelまわりでエラーが取れない．
@@ -60,11 +58,27 @@ EditorGUI::EditorGUI(PluginProcessor& p)
 
 		{
 			addAndMakeVisible(keyboardComponent);
-			keyboardComponent.setKeyWidth(KEY_WIDTH);
-			keyboardComponent.setScrollButtonWidth(KEY_SCROLL_WIDTH);
 			keyboardComponent.setColour(juce::MidiKeyboardComponent::keyDownOverlayColourId, Colour(200, 48, 48));
 			keyboardComponent.setColour(juce::MidiKeyboardComponent::mouseOverKeyOverlayColourId, Colour(190, 187, 194));
 
+			auto& drumButton = presetPanel.drumModeButton;
+			drumButton.setClickingTogglesState(true);
+			drumButton.setColour(TextButton::ColourIds::buttonOnColourId, Colours::white.withAlpha(0.15f));
+			drumButton.onClick = [this] { keyboardComponent.setDrumMode(presetPanel.drumModeButton.getToggleState()); };
+			drumModeAttachment = std::make_unique<juce::ButtonParameterAttachment>(*p.presetsParameters.DrumMode, drumButton);
+			keyboardComponent.setDrumMode(drumButton.getToggleState());
+
+			keyboardComponent.onPresetsChanged = [this] {
+				presetPanel.loadPresetList();
+				waveformMemoryParamsComponent.setWaveformIndex(0);
+				};
+			presetPanel.onPresetsChanged = [this] { keyboardComponent.repaint(); };
+			presetPanel.onPresetSelected = [this](int) {
+				waveformMemoryParamsComponent.setWaveformIndex(0);
+				};
+			processor.getPresetManager().onPresetLoaded = [this](int) {
+				waveformMemoryParamsComponent.setWaveformIndex(0);
+				};
 
 
 			addAndMakeVisible(OscButton);
@@ -75,6 +89,19 @@ EditorGUI::EditorGUI(PluginProcessor& p)
 			ArpButton.setToggleState(false);
 			CycleButton.setToggleState(false);
 			EffectButton.setToggleState(false);
+
+			arpSequencer.onParamsChanged = [this]() {
+				processor.getPresetManager().markPresetModified();
+				};
+
+			wavePatternsComponent.onParamsChanged = [this]() {
+				processor.getPresetManager().markPresetModified();
+				};
+
+			waveformMemoryParamsComponent.onParamsChanged = [this]() {
+				processor.getPresetManager().markPresetModified();
+				};
+			addAndMakeVisible(presetPanel);
 		}
 		{
 			addAndMakeVisible(chipOscComponent);
@@ -156,11 +183,7 @@ EditorGUI::EditorGUI(PluginProcessor& p)
 		}
 
 		chipOscComponent.onWaveformChanged = [this](int index) {
-			DBG("onWaveformChanged called with: " + String(index));
-			DBG("getNumWaveforms: " + String(_waveformMemoryParamsPtr->getNumWaveforms()));
-
 			if (index >= 0 && index < _waveformMemoryParamsPtr->getNumWaveforms()) {
-				DBG("exists");
 				waveformMemoryParamsComponent.setWaveformIndex(index);
 			}
 			else {
@@ -195,6 +218,8 @@ EditorGUI::EditorGUI(PluginProcessor& p)
 }
 
 EditorGUI::~EditorGUI() {
+	processor.getPresetManager().onPresetLoaded = nullptr;
+
 	for (Component* child : getChildren()) {
 		child->setLookAndFeel(nullptr);
 	}
@@ -235,6 +260,9 @@ void EditorGUI::paint(Graphics& g) {
 void EditorGUI::resized() {
 	Rectangle<int> bounds = getLocalBounds();
 
+
+
+
 	keyboardComponent.setBounds(bounds.removeFromBottom(KEY_HEIGHT));
 
 	{
@@ -243,6 +271,8 @@ void EditorGUI::resized() {
 		CycleButton.setBounds(area.removeFromLeft(80));
 		ArpButton.setBounds(area.removeFromLeft(80));
 		EffectButton.setBounds(area.removeFromLeft(80));
+
+		presetPanel.setBounds(432, 0, 424, 34);
 	}
 
 	// Oscillator Page (WAVE)

@@ -11,7 +11,22 @@ namespace {
 	const float HEADER_HEIGHT = 24.0f;
 	const std::int32_t LOCAL_MARGIN = 2;
 
-	static File preFilePath = File::getSpecialLocation(File::currentApplicationFile);
+	//static File preFilePath = File::getSpecialLocation(File::currentApplicationFile);
+
+	inline File& preFilePathWaveform() {
+
+		static File preFilePath = File::getSpecialLocation(
+			juce::File::SpecialLocationType::commonDocumentsDirectory)
+			.getChildFile(ProjectInfo::companyName)
+			.getChildFile(ProjectInfo::projectName)
+			.getChildFile("Waveforms");
+
+		if (!preFilePath.exists()) {
+			preFilePath.createDirectory();
+		}
+
+		return preFilePath;
+	}
 }
 
 static File getPreFileDirectory(File* file) {
@@ -43,12 +58,6 @@ static std::vector<std::string> split(std::string str, char del) {
 	}
 	return result;
 }
-
-
-// This is where I would have to change some of the UI at, this I think
-// points to each font
-
-
 
 static void paintHeader(Graphics& g, Rectangle<int> bounds, std::string text) {
 	{ // 枠の描画
@@ -342,7 +351,7 @@ static void paintHeaderWaveFormMemory(Graphics& g, Rectangle<int> bounds, std::s
 static void saveWaveFile(WaveformMemoryParameters* _waveformMemoryParamsPtr,
 	int waveformIndex,
 	std::unique_ptr<FileChooser>& fc) {
-	auto chooser = new FileChooser("Save Waveform", preFilePath, "*.wfm");
+	auto chooser = new FileChooser("Save Waveform", preFilePathWaveform(), "*.wfm");
 	fc.reset(chooser);
 	fc->launchAsync(FileBrowserComponent::saveMode | FileBrowserComponent::canSelectFiles,
 		[_waveformMemoryParamsPtr, waveformIndex](const FileChooser& chooser) {
@@ -360,7 +369,7 @@ static void saveWaveFile(WaveformMemoryParameters* _waveformMemoryParamsPtr,
 				newFile.appendText(std::to_string(*waveArray[i]));
 				newFile.appendText(" ");
 			}
-			preFilePath = chooser.getResult();
+			preFilePathWaveform() = chooser.getResult();
 		}
 	);
 }
@@ -368,7 +377,7 @@ static void saveWaveFile(WaveformMemoryParameters* _waveformMemoryParamsPtr,
 static void loadWaveFile(WaveformMemoryParameters* _waveformMemoryParamsPtr,
 	int waveformIndex,
 	std::unique_ptr<FileChooser>& fc) {
-	auto chooser = new FileChooser("Load Waveform", preFilePath, "*.wfm");
+	auto chooser = new FileChooser("Load Waveform", preFilePathWaveform(), "*.wfm");
 	fc.reset(chooser);
 	fc->launchAsync(FileBrowserComponent::openMode | FileBrowserComponent::canSelectFiles,
 		[_waveformMemoryParamsPtr, waveformIndex](const FileChooser& chooser) {
@@ -388,15 +397,13 @@ static void loadWaveFile(WaveformMemoryParameters* _waveformMemoryParamsPtr,
 					++count;
 				}
 			}
-			preFilePath = chooser.getResult();
+			preFilePathWaveform() = chooser.getResult();
 		}
 	);
 }
 
 
 // UI LEFT BUTTONS
-
-
 ChipOscillatorComponent::ChipOscillatorComponent(ChipOscillatorParameters* oscParams, WaveformMemoryParameters* waveformMemoryParams)
 	: _oscParamsPtr(oscParams),
 	_waveformMemoryParamsPtr(waveformMemoryParams),
@@ -513,7 +520,6 @@ void ChipOscillatorComponent::timerCallback() {
 		refreshWaveformList();
 	}
 
-	// For waveform selector, use currentWaveformName instead of the parameter
 	int paramIndex = (int)*_oscParamsPtr->OscWaveType;
 	if (waveTypeSelector.selector.getSelectedItemIndex() != paramIndex) {
 		waveTypeSelector.selector.setSelectedItemIndex(paramIndex, dontSendNotification);
@@ -524,8 +530,6 @@ void ChipOscillatorComponent::timerCallback() {
 	decaySlider.setValue(_oscParamsPtr->Decay->get());
 	sustainSlider.setValue(_oscParamsPtr->Sustain->get());
 	releaseSlider.setValue(_oscParamsPtr->Release->get());
-
-	//// Only update color selector if it changed
 	//int newColorIndex = _oscParamsPtr->ColorType->getIndex();
 	//if (colorTypeSelector.selector.getSelectedItemIndex() != newColorIndex) {
 	//    colorTypeSelector.setSelectedItemIndex(newColorIndex);
@@ -644,10 +648,6 @@ void SweepParametersComponent::comboBoxChanged(
 bool SweepParametersComponent::isEditable() {
 	return (_sweepParamsPtr->SweepSwitch->getIndex() >= 1) ? true : false;
 }
-
-
-
-
 
 static void paintHeaderVibrato(Graphics& g, Rectangle<int> bounds, std::string text, int innerboxheight, bool hasoutline, bool istop) {
 	auto x = 10.0f;
@@ -790,7 +790,7 @@ void VibratoParametersComponent::resized() {
 		b.removeFromLeft(skipSpace);
 		int onButtonWidth = 80;
 		int attackButtonWidth = 115;
-		// im just going to hard code the spaces because im tired, ui is so tiring
+		// im just going to hard code the spaces because im tired
 		enableSwitch.setBounds(b.removeFromLeft(onButtonWidth).removeFromTop(48).translated(10, -2));
 		attackDeleySwitch.setBounds(b.removeFromLeft(attackButtonWidth).removeFromTop(48).translated(20, -2));
 	}
@@ -1030,14 +1030,19 @@ ArpSequencerComponent::ArpSequencerComponent(ArpParameters* arpParameters)
 	: BaseComponent(),
 	_arpParameters(arpParameters),
 	_enableSwitch("ON", _arpParameters->ArpEnabled, this),
+	_fixedSwitch("FIXED", _arpParameters->FixedEnabled, this),
 	_loopSwitch("LOOP", _arpParameters->LoopEnabled, this),
 	_stepTimeSlider("DURATION", "sec", _arpParameters->ArpStepTime, this, MIN_DELTA, 0.25f),
 	_rangeSliders(_arpParameters) {
 
 	addAndMakeVisible(_enableSwitch);
+	addAndMakeVisible(_fixedSwitch);
 	addAndMakeVisible(_loopSwitch);
 	addAndMakeVisible(_rangeSliders);
 	addAndMakeVisible(_stepTimeSlider);
+	_rangeSliders.onValuesChanged = [this]() {
+		if (onParamsChanged) onParamsChanged();
+		};
 }
 
 void ArpSequencerComponent::paint(Graphics& g) {
@@ -1055,6 +1060,7 @@ void ArpSequencerComponent::resized() {
 
 	_enableSwitch.setBounds(area.removeFromLeft(width - 14));
 	_loopSwitch.setBounds(area.removeFromLeft(width));
+	_fixedSwitch.setBounds(area.removeFromLeft(width));
 	_stepTimeSlider.setBounds(area.reduced(LOCAL_MARGIN));
 	_rangeSliders.setBounds(bounds.reduced(LOCAL_MARGIN));
 }
@@ -1063,6 +1069,7 @@ void ArpSequencerComponent::timerCallback() {
 	_enableSwitch.setToggleState(_arpParameters->ArpEnabled->get());
 	_loopSwitch.setToggleState(_arpParameters->LoopEnabled->get());
 	_stepTimeSlider.setValue(_arpParameters->ArpStepTime->get());
+	_fixedSwitch.setToggleState(_arpParameters->FixedEnabled->get());
 }
 
 void ArpSequencerComponent::buttonClicked(Button* button) {
@@ -1072,12 +1079,17 @@ void ArpSequencerComponent::buttonClicked(Button* button) {
 	else if (button == &_loopSwitch.button) {
 		*_arpParameters->LoopEnabled = _loopSwitch.getToggleState();
 	}
+	else if (button == &_fixedSwitch.button) {
+		*_arpParameters->FixedEnabled = _fixedSwitch.getToggleState();
+	}
+	if (onParamsChanged) onParamsChanged();
 	resized();
 }
 
 void ArpSequencerComponent::sliderValueChanged(Slider* slider) {
 	if (slider == &_stepTimeSlider.slider) {
 		*_arpParameters->ArpStepTime = (float)_stepTimeSlider.getValue();
+		if (onParamsChanged) onParamsChanged();
 	}
 }
 
@@ -1172,17 +1184,19 @@ WaveformMemoryParametersComponent::WaveformMemoryParametersComponent(
 
 
 	fileBrowserButton() {
+
+	waveRangeSlider.onCopyWaveform = [this](int i) { copyWaveform(i); };
+	waveRangeSlider.onPasteWaveform = [this](int i) { pasteWaveform(i); };
+
 	auto fileMode =
 		FileBrowserComponent::FileChooserFlags::openMode +
 		FileBrowserComponent::FileChooserFlags::canSelectFiles +
 		FileBrowserComponent::FileChooserFlags::filenameBoxIsReadOnly +
 		FileBrowserComponent::FileChooserFlags::doNotClearFileNameOnRootChange;
 
-	_fileBrowser = new FileBrowserComponent(fileMode, preFilePath.getParentDirectory(), nullptr, nullptr);
+	_fileBrowser = new FileBrowserComponent(fileMode, getPreFileDirectory(&preFilePathWaveform()), nullptr, nullptr);
 	_fileBrowser->addListener(this);
 	addAndMakeVisible(_fileBrowser);
-
-	// declaring the new wave button, it didnt work so it must be somewhere else ... 
 	waveButton.setButtonText("+");
 	waveButton.addListener(this);
 	addAndMakeVisible(waveButton);
@@ -1213,6 +1227,23 @@ WaveformMemoryParametersComponent::WaveformMemoryParametersComponent(
 
 	waveRangeSlider.addMouseListener(this, true);
 	addAndMakeVisible(waveRangeSlider);
+
+	waveRangeSlider.onValuesChanged = [this]() {
+		if (onParamsChanged) onParamsChanged();
+		};
+
+	for (auto* param : _processorRef.getParameters()) {
+		if (auto* p = dynamic_cast<juce::AudioProcessorParameterWithID*>(param)) {
+			if (p->paramID == "PROGRAM_INDEX") {
+				programIndexParam = dynamic_cast<juce::AudioParameterInt*>(param);
+				break;
+			}
+		}
+	}
+	if (programIndexParam != nullptr) {
+		lastProgIndex = programIndexParam->get();
+	}
+	startTimerHz(20);
 }
 
 
@@ -1220,6 +1251,16 @@ WaveformMemoryParametersComponent::WaveformMemoryParametersComponent(
 
 WaveformMemoryParametersComponent::~WaveformMemoryParametersComponent() {
 	delete _fileBrowser;
+}
+
+void WaveformMemoryParametersComponent::timerCallback() {
+	if (programIndexParam != nullptr) {
+		const int progIdx = programIndexParam->get();
+		if (progIdx != lastProgIndex) {
+			lastProgIndex = progIdx;
+			setWaveformIndex(0);
+		}
+	}
 }
 
 void WaveformMemoryParametersComponent::paint(Graphics& g) {
@@ -1256,15 +1297,16 @@ void WaveformMemoryParametersComponent::resized() {
 void WaveformMemoryParametersComponent::buttonClicked(Button* button) {
 	if (button == &saveButton) {
 		saveWaveFile(_waveformMemoryParamsPtr, currentWaveformIndex, fc);
-		_fileBrowser->setRoot(getPreFileDirectory(&preFilePath));
+		_fileBrowser->setRoot(getPreFileDirectory(&preFilePathWaveform()));
 	}
 	else if (button == &loadButton) {
 		loadWaveFile(_waveformMemoryParamsPtr, currentWaveformIndex, fc);
-		_fileBrowser->setRoot(getPreFileDirectory(&preFilePath));
+		_fileBrowser->setRoot(getPreFileDirectory(&preFilePathWaveform()));
+		if (onParamsChanged) onParamsChanged();
 	}
 	else if (button == &fileBrowserButton) {
 		isFileBrowserEnabled = !isFileBrowserEnabled;
-		_fileBrowser->setRoot(getPreFileDirectory(&preFilePath));
+		_fileBrowser->setRoot(getPreFileDirectory(&preFilePathWaveform()));
 		resized();
 	}
 	else if (button == &waveButton) {
@@ -1278,6 +1320,8 @@ void WaveformMemoryParametersComponent::buttonClicked(Button* button) {
 		if (onAddWaveform) {
 			onAddWaveform(newWaveName);
 		}
+
+		if (onParamsChanged) onParamsChanged();
 
 		//DBG("new waveform at index " + String(16 + (newWaveformIndex - 1)));
 	}
@@ -1362,6 +1406,8 @@ void WaveformMemoryParametersComponent::filesDropped(const StringArray& files,
 			}
 		}
 
+		if (onParamsChanged) onParamsChanged();
+
 		//DBG("current waveform: " + String(currentWaveformIndex));
 	}
 }
@@ -1383,6 +1429,8 @@ void WaveformMemoryParametersComponent::fileClicked(const File& file, const Mous
 			}
 		}
 
+		if (onParamsChanged) onParamsChanged();
+
 		//DBG("current waveform: " + String(currentWaveformIndex));
 	}
 }
@@ -1390,7 +1438,7 @@ void WaveformMemoryParametersComponent::fileClicked(const File& file, const Mous
 
 
 void WaveformMemoryParametersComponent::browserRootChanged(const File& file) {
-	preFilePath = file.getFullPathName();
+	preFilePathWaveform() = file;
 }
 
 
@@ -1404,6 +1452,82 @@ void WaveformMemoryParametersComponent::setWaveformIndex(int index) {
 	repaint();
 }
 
+void WaveformMemoryParametersComponent::copyWaveform(int index) {
+	if (index < 0 || index >= _waveformMemoryParamsPtr->getNumWaveforms()) {
+		//DBG("i: " + String(index) + ", max: " + String(_waveformMemoryParamsPtr->getNumWaveforms()));
+		return;
+	}
+	String samp = "";
+	AudioParameterInt** waveArray = _waveformMemoryParamsPtr->getWaveformArray(index);
+
+	for (int i = 0; i < WAVESAMPLE_LENGTH; i++) {
+		samp << String(waveArray[i]->get()) << " ";
+	}
+
+	SystemClipboard::copyTextToClipboard(samp.trim());
+}
+
+void WaveformMemoryParametersComponent::pasteWaveform(int index) {
+	if (index < 0 || index >= _waveformMemoryParamsPtr->getNumWaveforms()) {
+		return;
+	}
+
+	String samp = SystemClipboard::getTextFromClipboard();
+	if (samp.isEmpty()) return;
+
+	StringArray values;
+	values.addTokens(samp, " ", "\"");
+
+	AudioParameterInt** waveArray = _waveformMemoryParamsPtr->getWaveformArray(index);
+
+	std::vector<float> rawValues;
+	float minVal = std::numeric_limits<float>::max();
+	float maxVal = std::numeric_limits<float>::lowest();
+
+	int numValuesToRead = jmin(values.size(), (int)WAVESAMPLE_LENGTH);
+
+	for (int i = 0; i < numValuesToRead; ++i) {
+		float val = values[i].getFloatValue();
+		rawValues.push_back(val);
+
+		if (val < minVal) minVal = val;
+		if (val > maxVal) maxVal = val;
+	}
+
+	if (rawValues.empty()) return;
+
+	if (maxVal <= 15) {
+
+		int count = 0;
+		for (auto& valString : values) {
+			if (count < WAVESAMPLE_LENGTH) {
+				int clampedVal = jlimit(0, 15, valString.getIntValue());
+				*waveArray[count] = clampedVal;
+				count++;
+			}
+		}
+	}
+	else {
+		float range = maxVal - minVal;
+
+		for (int i = 0; i < rawValues.size(); ++i) {
+			int normalizedVal;
+
+			if (range == 0.0f) {
+				normalizedVal = jlimit(0, 15, static_cast<int>(std::round(rawValues[i])));
+			}
+			else {
+
+				float scaledVal = ((rawValues[i] - minVal) / range) * 15.0f;
+				normalizedVal = static_cast<int>(std::round(scaledVal));
+			}
+			*waveArray[i] = jlimit(0, 15, normalizedVal);
+		}
+	}
+
+	if (onParamsChanged) onParamsChanged();
+
+}
 
 // ----------------------------------------------------------------------------------
 
@@ -1451,6 +1575,8 @@ void FilterParametersComponent::resized() {
 }
 
 void FilterParametersComponent::timerCallback() {
+	hiCutSwitch.setToggleState(_filterParamsPtr->HicutEnable->get());
+	lowCutSwitch.setToggleState(_filterParamsPtr->LowcutEnable->get());
 	hicutFreqSlider.setValue(_filterParamsPtr->HicutFreq->get());
 	lowcutFreqSlider.setValue(_filterParamsPtr->LowcutFreq->get());
 }
@@ -1523,6 +1649,10 @@ WavePatternsComponent::WavePatternsComponent(WavePatternParameters* wavePatternP
 		addAndMakeVisible(*_waveTypeSelectors[i]);
 	}
 
+	_rangeSliders.onValuesChanged = [this]() {
+		if (onParamsChanged) onParamsChanged();
+		};
+
 	addAndMakeVisible(_enableSwitch);
 	addAndMakeVisible(_loopSwitch);
 	addAndMakeVisible(_rangeSliders);
@@ -1584,7 +1714,10 @@ void WavePatternsComponent::resized() {
 void WavePatternsComponent::timerCallback() {
 	_enableSwitch.setToggleState(_wavePatternParameters->PatternEnabled->get());
 	_loopSwitch.setToggleState(_wavePatternParameters->LoopEnabled->get());
+	_stepTimeSlider.setValue(_wavePatternParameters->StepTime->get());
+
 	static int lastNumWaveforms = 4;
+
 	if (_waveformMemoryParamsPtr->getNumWaveforms() != lastNumWaveforms) {
 		lastNumWaveforms = _waveformMemoryParamsPtr->getNumWaveforms();
 		refreshWaveformList();
@@ -1598,8 +1731,6 @@ void WavePatternsComponent::timerCallback() {
 }
 
 
-
-
 void WavePatternsComponent::comboBoxChanged(ComboBox* comboBoxThatHasChanged) {
 	for (auto i = 0; i < WAVEPATTERN_TYPES; ++i) {
 		if (comboBoxThatHasChanged == &_waveTypeSelectors[i]->selector) {
@@ -1610,6 +1741,7 @@ void WavePatternsComponent::comboBoxChanged(ComboBox* comboBoxThatHasChanged) {
 			if (onSwitchWaveform) {
 				onSwitchWaveform(selectedIndex);
 			}
+			if (onParamsChanged) onParamsChanged();
 			DBG("WavePattern[" + String(i) + "]" + ", name: " + selectedName);
 			return;
 		}
@@ -1619,8 +1751,6 @@ void WavePatternsComponent::comboBoxChanged(ComboBox* comboBoxThatHasChanged) {
 }
 
 
-
-
 void WavePatternsComponent::buttonClicked(Button* button) {
 	if (button == &_enableSwitch.button) {
 		*_wavePatternParameters->PatternEnabled = _enableSwitch.getToggleState();
@@ -1628,11 +1758,13 @@ void WavePatternsComponent::buttonClicked(Button* button) {
 	else if (button == &_loopSwitch.button) {
 		*_wavePatternParameters->LoopEnabled = _loopSwitch.getToggleState();
 	}
+	if (onParamsChanged) onParamsChanged();
 	resized();
 }
 
 void WavePatternsComponent::sliderValueChanged(Slider* slider) {
 	if (slider == &_stepTimeSlider.slider) {
 		*_wavePatternParameters->StepTime = (float)_stepTimeSlider.getValue();
+		if (onParamsChanged) onParamsChanged();
 	}
 }

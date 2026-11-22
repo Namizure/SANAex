@@ -5,6 +5,7 @@
 #include "MIDIEcho.h"
 #include "SimpleSound.h"
 #include "Waveforms.h"
+#include "../GUI/PresetManager.h"
 
 class SimpleVoice : public SynthesiserVoice {
 public:
@@ -15,7 +16,9 @@ public:
 		MidiEchoParameters* midiEchoParams,
 		WaveformMemoryParameters* waveformMemoryParams,
 		WavePatternParameters* wavePatternParams,
-		ArpParameters* arpParams);
+		ArpParameters* arpParams,
+		PresetsParameters* presetsParams,
+		Service::PresetManager* presetManager);
 
 	virtual ~SimpleVoice() = default;
 
@@ -31,6 +34,7 @@ public:
 		int startSample, int numSamples) override;
 
 private:
+	int currentMidiNote = 60;
 	void clear();
 	void patternWaveClear();
 	float calcModulationFactor(float angle);
@@ -44,15 +48,8 @@ private:
 	std::vector<float> echoSamples;
 
 	EchoBuffer eb;
-
-	// Waveform用のパラメータ
 	Waveforms waveForms;
-	//各種エンベロープ， アンプ， ビブラート， ポルタメント用
 	AmpEnvelope ampEnv, vibratoEnv, portaEnv;
-	// 音色エンベロープ
-	//ColorEnvelope colorEnv;
-
-	// パラメータを管理するオブジェクトのポインタ変数。
 	ChipOscillatorParameters* _chipOscParamsPtr;
 	SweepParameters* _sweepParamsPtr;
 	VibratoParameters* _vibratoParamsPtr;
@@ -62,6 +59,10 @@ private:
 	WaveformMemoryParameters* _waveformMemoryParamsPtr;
 	WavePatternParameters* _wavePatternParams;
 	ArpParameters* _arpParamsPtr;
+	PresetsParameters* _presetsParamsPtr;
+	Service::PresetManager* _presetManagerPtr;
+	bool isDrumVoice = false;
+	Service::DrumPreset drumPreset;
 
 	int currentWaveIndex = 0;
 

@@ -8,6 +8,9 @@ namespace {
 	const float MIN_DELTA = 0.0001f;
 }
 
+static_assert(WAVEPATTERN_LENGTH == Service::PresetManager::NUM_STEPS, "PresetStepFlags size mismatch");
+static_assert(ArpParameters::ARP_LENGTH == Service::PresetManager::NUM_STEPS, "PresetStepFlags size mismatch");
+
 // This creates new instances of the plugin..
 AudioProcessor* JUCE_CALLTYPE createPluginFilter() {
 	return new PluginProcessor();
@@ -32,24 +35,13 @@ PluginProcessor::PluginProcessor()
 		new AudioParameterBool("VIBRATO_ENABLE", "Vibrato-Enable", false),
 		new AudioParameterBool("VIBRATO_ATTACK-DELEY-SWITCH", "Vibrato-Attack-Deley-Switch", true),
 		new AudioParameterFloat("VIBRATO_DEPTH", "Vibrato-Depth", { 0.0f, 12.0f, MIN_DELTA }, 0.5f),
-		new AudioParameterFloat("VIBRATO_SPEED", "Vibrato-Speed", { 0.0f, 20.0f, MIN_DELTA }, 4.f),
+		new AudioParameterFloat("VIBRATO_SPEED", "Vibrato-Speed", { 0.0f, 100.0f, MIN_DELTA }, 4.f),
 		new AudioParameterFloat("VIBRATO_ATTACKTIME", "Vibrato-AttackTime", { 0.0f, 15.0f, MIN_DELTA }, 0.0f)),
 	voicingParameters(
 		new AudioParameterChoice("VOICING_TYPE", "Voicing-Type", VOICING_SWITCH, 0),
 		new AudioParameterFloat("STEP_TIME", "Step-Time", { 0.0f, 3.0f, MIN_DELTA }, 0.5f)),
 	optionsParameters(
 
-
-
-
-		//----------------
-		// Change #1
-		//----------------
-
-		// I'm going to make the pitch bend go all the way to 48.
-
-		// simplevoice.cpp, 193
-		// pitch bend formula, pitch bend factor.
 		new AudioParameterInt("PITCH_BEND_RANGE", "Pitch-Bend-Range", 1, 48, 1),
 
 		new AudioParameterInt("PITCH_STANDARD", "Pitch-Standard", 400, 500, 440)),
@@ -69,7 +61,14 @@ PluginProcessor::PluginProcessor()
 
 	wavePatternParameters(),
 	arpParameters(),
-	scopeDataCollector(scopeDataQueue) {
+	scopeDataCollector(scopeDataQueue),
+	valueTreeState(*this, nullptr, ProjectInfo::projectName, juce::AudioProcessorValueTreeState::ParameterLayout()),
+	presetManager(std::make_unique<Service::PresetManager>(*this, valueTreeState))
+{
+	valueTreeState.state.setProperty(Service::PresetManager::presetNameProperty, "", nullptr);
+	valueTreeState.state.setProperty(Service::PresetManager::packPathProperty, "", nullptr);
+	valueTreeState.state.setProperty("version", ProjectInfo::versionString, nullptr);
+
 	presetsParameters.addAllParameters(*this);
 	chipOscParameters.addAllParameters(*this);
 	sweepParameters.addAllParameters(*this);
@@ -79,136 +78,29 @@ PluginProcessor::PluginProcessor()
 	midiEchoParameters.addAllParameters(*this);
 	waveformMemoryParameters.addAllParameters(*this);
 
-
-
 	filterParameters.addAllParameters(*this);
 	wavePatternParameters.addAllParameters(*this);
 	arpParameters.addAllParameters(*this);
+	addParameter(presetsParameters.DrumMode);
+
+	if (presetManager != nullptr) {
+		presetManager->captureDefaultState();
+	}
 }
 
 PluginProcessor ::~PluginProcessor() {}
 
-int PluginProcessor::getNumPrograms() { return NUM_OF_PRESETS; }
-
-int PluginProcessor::getCurrentProgram() {
-	currentProgIndex = presetsParameters.ProgramIndex->get();
-	return presetsParameters.ProgramIndex->get();
-}
-
-void PluginProcessor::setCurrentProgram(int index) {
-	if (currentProgIndex != index) {
-		initProgram();
-
-		switch (index) {
-		case 0:
-			break;
-		case 1:
-			*chipOscParameters.OscWaveType = 2;
-			*chipOscParameters.Decay = 5.000f;
-			*chipOscParameters.Sustain = 0.0f;
-			*vibratoParameters.VibratoAmount = 0.05f;
-			*vibratoParameters.VibratoSpeed = 13.0f;
-			break;
-		case 2:
-			*chipOscParameters.Attack = 1.000f;
-			*vibratoParameters.VibratoAmount = 0.05f;
-			*vibratoParameters.VibratoSpeed = 5.0f;
-			break;
-		case 3:
-			*chipOscParameters.Decay = 0.500f;
-			*chipOscParameters.Sustain = 0.0f;
-			break;
-		case 4:
-			*chipOscParameters.OscWaveType = 1;
-			*chipOscParameters.Decay = 0.050f;
-			*chipOscParameters.Sustain = 0.60f;
-			*vibratoParameters.VibratoAmount = 0.05f;
-			*vibratoParameters.VibratoSpeed = 6.0f;
-			break;
-		case 5:
-			*vibratoParameters.VibratoAmount = 1.0f;
-			*vibratoParameters.VibratoSpeed = 6.0f;
-			*vibratoParameters.VibratoAttackTime = 3.0f;
-			break;
-		case 6:
-			*chipOscParameters.Decay = 0.300f;
-			*chipOscParameters.Sustain = 0.5f;
-			break;
-		case 7:
-			*sweepParameters.SweepSwitch = 1;
-			*sweepParameters.SweepTime = 3.0f;
-			break;
-		case 8:
-			*chipOscParameters.OscWaveType = 10;
-			*chipOscParameters.Decay = 0.200f;
-			*chipOscParameters.Sustain = 0.0f;
-			break;
-		case 9:
-			*chipOscParameters.OscWaveType = 10;
-			*chipOscParameters.Decay = 0.800f;
-			*chipOscParameters.Sustain = 0.0f;
-			break;
-		case 10:
-			*chipOscParameters.OscWaveType = 10;
-			*chipOscParameters.Attack = 0.100f;
-			*chipOscParameters.Decay = 2.500f;
-			*chipOscParameters.Sustain = 0.0f;
-			break;
-		case 11:
-			*chipOscParameters.Decay = 0.200f;
-			*chipOscParameters.Sustain = 0.0f;
-			*sweepParameters.SweepSwitch = 2;
-			*sweepParameters.SweepTime = 0.4f;
-			break;
-		default:
-			break;
-		}
-		*presetsParameters.ProgramIndex = currentProgIndex = index;
-	}
-}
-
-const String PluginProcessor::getProgramName(int index) {
-	switch (index) {
-	case 0:
-		return ("Initial Program");
-	case 1:
-		return ("Voice Lead");
-	case 2:
-		return ("String");
-	case 3:
-		return ("Mallet");
-	case 4:
-		return ("Brass");
-	case 5:
-		return ("Modulated Lead");
-	case 6:
-		return ("Backing Lead");
-	case 7:
-		return ("Riser Lead");
-	case 8:
-		return ("Noise Hihat");
-	case 9:
-		return ("Noise Snare");
-	case 10:
-		return ("Noise Cymbal");
-	case 11:
-		return ("Pulse Bass&Tom");
-	default:
-		return ("");
-	}
-}
+int PluginProcessor::getNumPrograms() { return 1; }
+int PluginProcessor::getCurrentProgram() { return 0; }
+void PluginProcessor::setCurrentProgram(int index) { juce::ignoreUnused(index); }
+const String PluginProcessor::getProgramName(int index) { return {}; }
 
 void PluginProcessor::prepareToPlay(double sampleRate, int32_t samplesPerBlock) {
 	synth.clearSounds();
 	synth.clearVoices();
 	synth.setCurrentPlaybackSampleRate(sampleRate * UP_SAMPLING_FACTOR);
-
-	// サウンド再生可能なノート番号の範囲を定義する。関数"setRange"
-	// にて0～127の値をtrueに設定する。
 	BigInteger canPlayNotes;
 	canPlayNotes.setRange(0, 127, true);
-	// サウンド再生可能なチャンネル番号の範囲を定義する。関数"setRange"
-	// にて0～127の値をtrueに設定する。
 	BigInteger canPlayChannels;
 	canPlayChannels.setRange(1, 2, true);
 	synth.addSound(new SimpleSound(canPlayNotes, canPlayChannels));
@@ -227,11 +119,77 @@ void PluginProcessor::prepareToPlay(double sampleRate, int32_t samplesPerBlock) 
 }
 
 void PluginProcessor::processBlock(AudioBuffer<float>& buffer, MidiBuffer& midiMessages) {
-	// 高サンプルのバッファを用意しておく  
+	for (const auto meta : midiMessages) {
+		const auto msg = meta.getMessage();
+		if (msg.isProgramChange()) {
+			const int idx = jlimit(0, NUM_OF_PRESETS, msg.getProgramChangeNumber());
+			if (idx != presetsParameters.ProgramIndex->get()) {
+				*presetsParameters.ProgramIndex = idx;
+			}
+		}
+		else if (msg.isController() && msg.getControllerNumber() == 20) {
+			const int idx = jlimit(0, NUM_OF_PRESETS, msg.getControllerValue());
+			if (idx != presetsParameters.ProgramIndex->get()) {
+				*presetsParameters.ProgramIndex = idx;
+			}
+		}
+	}
+
+	int targetPreset = presetsParameters.ProgramIndex->get();
+
+	if (targetPreset >= 0 && targetPreset != currentProgIndex.load(std::memory_order_relaxed)) {
+
+		if (presetManager != nullptr && presetManager->cacheReady.load()) {
+			const Service::PresetManager::ScopedSyncBlock syncBlock(*presetManager);
+			presetManager->cancelPendingSync();
+
+			auto allParams = getParameters();
+			auto& cachedValues = presetManager->presetParamCache[targetPreset];
+
+			if (cachedValues.size() == allParams.size()) {
+				for (int p = 0; p < allParams.size(); ++p) {
+					if (auto* paramWithID = dynamic_cast<juce::AudioProcessorParameterWithID*>(allParams[p])) {
+						if (paramWithID->paramID == presetsParameters.ProgramIndex->getParameterID()) continue;
+						if (paramWithID->paramID == presetsParameters.DrumMode->getParameterID()) continue;
+						if (paramWithID->paramID == optionsParameters.PitchBendRange->paramID) continue;
+						if (paramWithID->paramID == optionsParameters.PitchStandard->paramID) continue;
+					}
+					allParams[p]->setValue(cachedValues[p]);
+				}
+			}
+
+			const auto* drum = presetManager->getDrumPreset(targetPreset);
+			if (drum != nullptr) {
+				waveformMemoryParameters.currentNumWaveforms = drum->numWaveforms;
+				for (int w = 0; w < WaveformMemoryParameters::MAX_WAVEFORMS; ++w) {
+					for (int i = 0; i < WaveformMemoryParameters::WAVESAMPLE_LENGTH; ++i) {
+						*waveformMemoryParameters.WaveSamplesArrays[w][(size_t)i] = drum->waveSamples[w][i];
+					}
+				}
+
+				for (int i = 0; i < WAVEPATTERN_LENGTH; ++i) {
+					*wavePatternParameters.WavePatternArray[i] = drum->wavePattern[i];
+					wavePatternParameters.isEndStep[i] = drum->stepFlags.wavePatternEnd[i];
+					wavePatternParameters.isLoopStep[i] = drum->stepFlags.wavePatternLoop[i];
+				}
+				for (int i = 0; i < WAVEPATTERN_TYPES; ++i) {
+					*wavePatternParameters.WaveTypes[i] = drum->patternWaveTypes[i];
+				}
+
+				for (int i = 0; i < ArpParameters::ARP_LENGTH; ++i) {
+					*arpParameters.ArpPatternArray[i] = drum->arpPattern[i];
+					arpParameters.isEndStep[i] = drum->stepFlags.arpEnd[i];
+					arpParameters.isLoopStep[i] = drum->stepFlags.arpLoop[i];
+				}
+			}
+
+			presetManager->setPresetIndex(targetPreset);
+		}
+
+		currentProgIndex.store(targetPreset, std::memory_order_relaxed);
+	}
 	AudioBuffer<float> upSampleBuffer(buffer.getNumChannels(), buffer.getNumSamples() * UP_SAMPLING_FACTOR);
 	clearBuffers(buffer, upSampleBuffer);
-
-	// MIDIキーボードUI情報の更新
 	keyboardState.processNextMidiBuffer(midiMessages, 0, buffer.getNumSamples(), true);
 
 	if (getNumVoices() != synth.getNumVoices()) {
@@ -240,21 +198,16 @@ void PluginProcessor::processBlock(AudioBuffer<float>& buffer, MidiBuffer& midiM
 
 	procMidiMessages(buffer, midiMessages);
 
-	// 波形生成
 	synth.renderNextBlock(upSampleBuffer, midiMessages, 0, upSampleBuffer.getNumSamples());
 
-	// アンチエイリアス
 	antiAliasFilter.process(buffer, upSampleBuffer, getTotalNumInputChannels(), getTotalNumOutputChannels());
 
-	// エフェクトセクション
 	dsp::AudioBlock<float> audioBlock(buffer);
 	dsp::ProcessContextReplacing<float> context(audioBlock);
 
-	// ゲインを上げる
 	drive.setGainDecibels(chipOscParameters.VolumeLevel->get());
 	drive.process(context);
 
-	// フィルタ処理
 	{
 		if (filterParameters.HicutEnable->get()) {
 			*hicutFilter.state = *dsp::IIR::Coefficients<float>::makeLowPass(
@@ -267,10 +220,7 @@ void PluginProcessor::processBlock(AudioBuffer<float>& buffer, MidiBuffer& midiM
 			lowcutFilter.process(context);
 		}
 	}
-	// クリッピング処理
 	clipper.process(context);
-
-	// ⑧現時点でオーディオバッファで保持しているサンプルデータをScopeDataCollectorクラスのオブジェクトに渡す。
 	scopeDataCollector.process(buffer.getReadPointer(0),
 		(size_t)buffer.getNumSamples());
 }
@@ -279,12 +229,7 @@ AudioProcessorEditor* PluginProcessor::createEditor() {
 	return new EditorGUI(*this);
 }
 
-
-void PluginProcessor::getStateInformation(MemoryBlock& destData) {
-	// You should use this method to store your parameters in the memory block.
-	// You could do that either as raw data, or use the XML or ValueTree classes
-	// as intermediaries to make it easy to save and load complex data. OK!
-
+std::unique_ptr<XmlElement> PluginProcessor::createParametersXml() {
 	std::unique_ptr<XmlElement> xml(new XmlElement("SimpleSynthParameters"));
 
 	presetsParameters.saveParameters(*xml);
@@ -297,39 +242,57 @@ void PluginProcessor::getStateInformation(MemoryBlock& destData) {
 	waveformMemoryParameters.saveParameters(*xml);
 	filterParameters.saveParameters(*xml);
 
-	// new ones
 	wavePatternParameters.saveParameters(*xml);
 	arpParameters.saveParameters(*xml);
+
+	return xml;
+}
+
+void PluginProcessor::getStateInformation(MemoryBlock& destData) {
+	auto xml = createParametersXml();
+
+	if (presetManager != nullptr) {
+		presetManager->saveStateToXml(*xml);
+	}
 
 	copyXmlToBinary(*xml, destData);
 }
 
+void PluginProcessor::getPresetStateInformation(MemoryBlock& destData) {
+	copyXmlToBinary(*createParametersXml(), destData);
+}
+
 void PluginProcessor::setStateInformation(const void* data,
 	int sizeInBytes) {
-	// You should use this method to restore your parameters from this memory
-	// block, whose contents will have been created by the getStateInformation()
-	// call. OK!
 
 	std::unique_ptr<XmlElement> xmlState(getXmlFromBinary(data, sizeInBytes));
 
 	if (xmlState.get() != nullptr) {
 		if (xmlState->hasTagName("SimpleSynthParameters")) {
-			presetsParameters.loadParameters(*xmlState);
+			const bool isPresetSwap = presetManager->isInternalPresetSwap.load();
+			const Service::PresetManager::ScopedSyncBlock syncBlock(*presetManager);
+
+			if (!isPresetSwap) {
+				presetsParameters.loadParameters(*xmlState);
+				optionsParameters.loadParameters(*xmlState);
+			}
+
 			chipOscParameters.loadParameters(*xmlState);
 			sweepParameters.loadParameters(*xmlState);
 			vibratoParameters.loadParameters(*xmlState);
 			voicingParameters.loadParameters(*xmlState);
-			optionsParameters.loadParameters(*xmlState);
 			midiEchoParameters.loadParameters(*xmlState);
 			waveformMemoryParameters.loadParameters(*xmlState);
 			filterParameters.loadParameters(*xmlState);
-			// new ones
 			wavePatternParameters.loadParameters(*xmlState);
 			arpParameters.loadParameters(*xmlState);
+
+			if (!isPresetSwap) {
+				presetManager->loadStateFromXml(*xmlState);
+			}
 		}
 
-		// Preset用のパラメータを更新（変数をローカルintで保存しないとシンセ終了時にフリーズする
-		currentProgIndex = presetsParameters.ProgramIndex->get();
+		currentProgIndex.store(presetsParameters.ProgramIndex->get(), std::memory_order_relaxed);
 	}
 }
 
@@ -351,7 +314,7 @@ void PluginProcessor::initProgram() {
 }
 
 std::int32_t PluginProcessor::getNumVoices() {
-	if (voicingParameters.VoicingSwitch->getCurrentChoiceName() == "POLY") {
+	if (isDrumModeActive() || voicingParameters.VoicingSwitch->getCurrentChoiceName() == "POLY") {
 		return VOICE_MAX;
 	}
 	else {
@@ -363,7 +326,8 @@ void PluginProcessor::addVoice() {
 	synth.addVoice(new SimpleVoice(&chipOscParameters, &sweepParameters,
 		&vibratoParameters, &voicingParameters,
 		&optionsParameters, &midiEchoParameters,
-		&waveformMemoryParameters, &wavePatternParameters, &arpParameters));
+		&waveformMemoryParameters, &wavePatternParameters, &arpParameters,
+		&presetsParameters, presetManager.get()));
 }
 
 void PluginProcessor::changeVoiceSize() {
@@ -393,12 +357,8 @@ void PluginProcessor::clearBuffers(AudioBuffer<float>& buffer, AudioBuffer<float
 }
 
 float PluginProcessor::clippingFunction(float inputValue) {
-
-	// 双曲線正接...1の時に0.8の値を, -1の時に-0.8の値を取る
 	const float threshold = tanhf(inputValue);
 	float outputValue = inputValue;
-
-	// inputValueが正の値ならthresholdも正の値，inputValueが負の値ならthresholdも負の値を取るので，絶対値で比較する
 	if (abs(inputValue) >= abs(threshold)) outputValue = threshold;
 
 	return outputValue;

@@ -8,7 +8,7 @@ namespace {
 	const std::int32_t WAVESAMPLE_LENGTH = 32;
 	const std::int32_t WAVEPATTERN_LENGTH = 16;
 	const std::int32_t WAVEPATTERN_TYPES = 16;
-	const std::int32_t NUM_OF_PRESETS = 12;
+	const std::int32_t NUM_OF_PRESETS = 63;
 	const std::int32_t VOICE_MAX = 8;
 	const std::int32_t UP_SAMPLING_FACTOR = 2;
 
@@ -157,7 +157,7 @@ class WaveformMemoryParameters : public SynthParametersBase {
 public:
 
 	WaveformMemoryParameters();
-	//~WaveformMemoryParameters();
+	virtual ~WaveformMemoryParameters() override;
 
 
 	static const int MAX_WAVEFORMS = 20;
@@ -225,6 +225,7 @@ private:
 class PresetsParameters : public SynthParametersBase {
 public:
 	AudioParameterInt* ProgramIndex;
+	AudioParameterBool* DrumMode;
 	PresetsParameters();
 
 	virtual void addAllParameters(AudioProcessor& processor) override;
@@ -236,13 +237,18 @@ private:
 
 class WavePatternParameters : public SynthParametersBase {
 public:
+
+	virtual ~WavePatternParameters() override;
+
 	AudioParameterInt* WavePatternArray[WAVEPATTERN_LENGTH];
 	AudioParameterInt* WaveTypes[WAVEPATTERN_TYPES];
 	AudioParameterBool* PatternEnabled;
 	AudioParameterBool* LoopEnabled;
 	AudioParameterFloat* StepTime;
 	bool isEndStep[WAVEPATTERN_LENGTH] = { false };
+	bool isLoopStep[WAVEPATTERN_LENGTH] = { false };
 	int endStepIndex;
+	int loopStepIndex;
 
 
 	// track waveform names
@@ -259,13 +265,20 @@ private:
 
 class ArpParameters : public SynthParametersBase {
 public:
+
+	virtual ~ArpParameters() override;
+
 	static const int ARP_LENGTH = 16;
 	AudioParameterInt* ArpPatternArray[ARP_LENGTH];
 	AudioParameterBool* ArpEnabled;
 	AudioParameterFloat* ArpStepTime;
 	AudioParameterBool* LoopEnabled;
+	AudioParameterBool* FixedEnabled;
+	AudioParameterInt* FixedNote;
 	bool isEndStep[ARP_LENGTH] = { false };
+	bool isLoopStep[ARP_LENGTH] = { false };
 	int endStepIndex;
+	int loopStepIndex;
 
 	ArpParameters();
 

@@ -24,6 +24,7 @@ public:
 	float noise(const float angleDelta);
 	float lobitNoise(const float angleDelta);
 	float waveformMemory(float angle, WaveformMemoryParameters* _waveformMemoryParamsPtr, int waveformIndex = 0);
+	float waveformMemory(float angle, const int* waveSamples);
 
 
 private:
