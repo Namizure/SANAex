@@ -190,6 +190,13 @@ float Waveforms::waveformMemory(float angle, WaveformMemoryParameters* _waveform
 	return val / 8.0f - 1.0f;
 }
 
+float Waveforms::waveformMemory(float angle, const int* waveSamples) {
+	checkAngleRanage(angle);
+	auto index = std::min((std::int32_t)(angle * WAVESAMPLE_LENGTH / TWO_PI), WAVESAMPLE_LENGTH - 1);
+
+	return waveSamples[index] / 8.0f - 1.0f;
+}
+
 // 4bitクオンタイズ関数 qNum * 2倍の数でクオンタイズする
 float Waveforms::quantize(float sample, int qNum) {
 	return round(sample * qNum) / qNum;

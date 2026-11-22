@@ -1364,8 +1364,13 @@ private:
 // ===================
 
 
+
 class WaveSampleSliders : public Component, private juce::Timer {
 public:
+
+	std::function<void(int)> onCopyWaveform;
+	std::function<void(int)> onPasteWaveform;
+	std::function<void()> onValuesChanged;
 
 	WaveSampleSliders(WaveformMemoryParameters* waveformMemoryParams,
 		ChipOscillatorParameters* chipOscParams)
@@ -1385,8 +1390,10 @@ public:
 			return;
 		}
 		_current = index;
-		//DBG("_current: " + String(_current));
-		//waveRangeSlider.waveformindex(index);
+		AudioParameterInt** currentArray = getArrayForCurrentWaveform();
+		for (auto i = 0; i < WAVESAMPLE_LENGTH; ++i) {
+			_sampleSliders[i].setValue(currentArray[i]->get(), dontSendNotification);
+		}
 		repaint();
 	}
 
@@ -1496,11 +1503,13 @@ public:
 		for (auto i = 0; i < WAVESAMPLE_LENGTH; ++i) {
 			*currentArray[i] = (std::int32_t)_sampleSliders[i].getValue();
 		}
+		if (onValuesChanged) onValuesChanged();
 	};
 
 	void updateValue(std::int32_t index) {
 		AudioParameterInt** currentArray = getArrayForCurrentWaveform();
 		*currentArray[index] = (std::int32_t)_sampleSliders[index].getValue();
+		if (onValuesChanged) onValuesChanged();
 	};
 
 private:
@@ -1535,6 +1544,21 @@ private:
 	virtual void mouseDown(const MouseEvent& e) override {
 		if (e.mods.isPopupMenu()) {
 			_isRightClickActive = true;
+
+			PopupMenu menu;
+			menu.addItem(1, "Copy");
+			menu.addItem(2, "Paste");
+
+			menu.showMenuAsync(PopupMenu::Options().withTargetComponent(this).withMousePosition(),
+				[this](int result) {
+					if (result == 1 && onCopyWaveform) {
+						onCopyWaveform(_current);
+					}
+					else if (result == 2 && onPasteWaveform) {
+						onPasteWaveform(_current);
+					}
+				});
+
 			repaint();
 			return;
 		}
@@ -1562,6 +1586,7 @@ private:
 				_trails.removeObject(t);
 			}
 		}
+		if (onValuesChanged) onValuesChanged();
 		repaint();
 	};
 
@@ -1584,6 +1609,8 @@ private:
 
 class PatternSliders : public Component, private juce::Timer {
 public:
+	std::function<void()> onValuesChanged;
+
 	PatternSliders(WavePatternParameters* wavePatternParameters)
 		: _wavePatternParameters(wavePatternParameters),
 		_sampleSliders{} {
@@ -1595,9 +1622,6 @@ public:
 	}
 	virtual void paint(Graphics& g) override {
 
-
-
-
 		juce::ColourGradient gradient(
 			juce::Colour(32, 33, 40), 0.0f, 150.0f,
 			juce::Colour(45, 33, 39), 0.0f, 350.0f,
@@ -1605,10 +1629,10 @@ public:
 		g.setGradientFill(gradient);
 		g.fillAll();
 
-		for (auto* trail : _trails) {
-			auto compWidth = getWidth();
-			auto compHeight = getHeight();
+		float compWidth = (float)getWidth();
+		float compHeight = (float)getHeight();
 
+		for (auto* trail : _trails) {
 			std::int32_t index = (std::int32_t)(trail->currentPosition.x *
 				(float)sampleNum / compWidth);
 			index = std::min(index, sampleNum - 1);
@@ -1618,92 +1642,127 @@ public:
 			_sampleSliders[index].setValue(value, dontSendNotification);
 			updateValue(index);
 		}
-		// repaint Sliders
-		{
-			Rectangle<int> bounds = getLocalBounds();
-			float columnSize = (float)sampleNum;
-			float rowSize = valueMax;
-			float compWidth = getWidth();
-			float stepWidth = compWidth / (float)sampleNum;
 
-			int endStepIndex = -1;
-			for (int step = 0; step < sampleNum; ++step) {
-				if (_wavePatternParameters->isEndStep[step]) {
-					endStepIndex = step;
-					break;
-				}
-			}
+		float rowSize = (float)valueMax;
+		float stepWidth = compWidth / (float)sampleNum;
 
-			if (endStepIndex >= 0 && endStepIndex < sampleNum - 1) {
-				float darkStartX = (endStepIndex + 1) * stepWidth;
-				g.setColour(Colour(10, 13, 15).withAlpha(0.65f));
-				g.fillRect(Rectangle<float>(
-					darkStartX,
-					0.0f,
-					(float)getWidth() - darkStartX,
-					(float)getHeight()));
-			}
+		endStepIndex = -1;
+		loopStepIndex = -1;
 
-			// draw slider
-			for (auto i = 0; i < sampleNum; ++i) {
-				auto barHeight = getHeight() * (_sampleSliders[i].getValue() + 1.0f) / rowSize;
-				auto barWidth = compWidth / (float)sampleNum;
-				Rectangle<float> area2 = Rectangle<float>(
-					i * barWidth,
-					getHeight() - barHeight,
-					barWidth,
-					getHeight() / float(valueMax));
-				float saturateRate = (i + sampleNum / 2.f) / (sampleNum + sampleNum / 2.f);
-
-				Colour barColour(200, 48, 48);
-				if (i == endStepIndex) {
-					barColour = Colours::white;
-				}
-				else if (endStepIndex >= 0 && i > endStepIndex) {
-					barColour = Colour(110, 18, 29);
-				}
-
-				g.setColour(barColour);
-				g.fillRect(area2.reduced(0.5f));
-
-			}
-
-			// draw grid
-			for (auto i = 0; i <= valueMax; ++i) {
-				float p_y = getHeight() / float(valueMax) * i;
-				Line<float> line(0.0f, p_y, (float)getWidth(), p_y);
-				g.setColour(Colour(17, 18, 22));
-				g.drawLine(line, 1.5f);
-			}
-
-			for (auto i = 0; i <= sampleNum; ++i) {
-				float p_x = getWidth() / float(sampleNum) * i;
-				Line<float> line(p_x, 0.0f, p_x, (float)getHeight());
-				g.setColour(Colour(17, 18, 22));
-				g.drawLine(line, 1.5f);
+		for (int step = 0; step < sampleNum; ++step) {
+			if (_wavePatternParameters->isEndStep[step]) {
+				endStepIndex = step;
+				break;
 			}
 		}
-	};
 
+		for (int step = 0; step < sampleNum; ++step) {
+			if (_wavePatternParameters->isLoopStep[step]) {
+				loopStepIndex = step;
+				break;
+			}
+		}
+
+		if (endStepIndex >= 0 && endStepIndex < sampleNum - 1) {
+			float darkStartX = (endStepIndex + 1) * stepWidth;
+			g.setColour(Colour(10, 13, 15).withAlpha(0.45f));
+			g.fillRect(Rectangle<float>(
+				darkStartX,
+				0.0f,
+				compWidth - darkStartX,
+				compHeight));
+		}
+
+		if (loopStepIndex >= 0 && loopStepIndex < sampleNum - 1) {
+			float darkEndX = loopStepIndex * stepWidth;
+			g.setColour(Colour(10, 13, 15).withAlpha(0.25f));
+			g.fillRect(Rectangle<float>(
+				darkEndX,
+				0.0f,
+				compWidth - darkEndX,
+				compHeight));
+		}
+
+		for (auto i = 0; i < sampleNum; ++i) {
+			auto barHeight = compHeight * (_sampleSliders[i].getValue() + 1.0f) / rowSize;
+			auto barWidth = compWidth / (float)sampleNum;
+			Rectangle<float> area2 = Rectangle<float>(
+				i * barWidth,
+				compHeight - barHeight,
+				barWidth,
+				compHeight / rowSize);
+
+			Colour barColour(200, 48, 48);
+
+			if (endStepIndex >= 0 && i > endStepIndex) {
+				barColour = Colour(110, 18, 29);
+			}
+			else if (loopStepIndex >= 0 && i < loopStepIndex) {
+				barColour = Colour(200, 48, 48);
+			}
+			else if (i == endStepIndex) {
+				barColour = Colours::white;
+			}
+
+			g.setColour(barColour);
+			g.fillRect(area2.reduced(0.5f));
+		}
+
+		for (auto i = 0; i <= valueMax; ++i) {
+			float p_y = (compHeight / rowSize) * i;
+			Line<float> line(0.0f, p_y, compWidth, p_y);
+			g.setColour(Colour(17, 18, 22));
+			g.drawLine(line, 1.5f);
+		}
+
+		for (auto i = 0; i <= sampleNum; ++i) {
+			float p_x = (compWidth / (float)sampleNum) * i;
+			Line<float> line(p_x, 0.0f, p_x, compHeight);
+			g.setColour(Colour(17, 18, 22));
+			g.drawLine(line, 1.5f);
+		}
+
+		if (loopStepIndex >= 0 && loopStepIndex < sampleNum) {
+			float barWidth = compWidth / (float)sampleNum;
+			float lineX = loopStepIndex * barWidth;
+
+			g.setColour(Colour(200, 48, 48));
+			g.drawLine(lineX + 2, 0.0f, lineX + 2, compHeight, 2.0f);
+
+			Path loopFlag;
+			loopFlag.startNewSubPath(0.f, 0.f);
+			loopFlag.lineTo(2.f, 0.f);
+			loopFlag.lineTo(-2.f, 0.f);
+			loopFlag.lineTo(0.f, 0.f);
+			loopFlag.lineTo(0.f, -10.f);
+			loopFlag.lineTo(-3.f, -7.f);
+			loopFlag.lineTo(0.f, -5.f);
+
+			loopFlag.applyTransform(AffineTransform::scale(1.f, 1.f));
+			loopFlag.applyTransform(AffineTransform::translation(lineX + 10, 15.f));
+
+			g.setColour(Colour(240, 70, 70));
+			g.strokePath(loopFlag, PathStrokeType(1.5f));
+			g.fillPath(loopFlag);
+		}
+	}
 
 	void updateValue() {
 		for (auto i = 0; i < sampleNum; ++i) {
 			int newVal = (std::int32_t)_sampleSliders[i].getValue();
 			if (_wavePatternParameters->WavePatternArray[i]->get() != newVal) {
-				_wavePatternParameters->WavePatternArray[i]->beginChangeGesture();
 				*_wavePatternParameters->WavePatternArray[i] = newVal;
-				_wavePatternParameters->WavePatternArray[i]->endChangeGesture();
 			}
 		}
+		if (onValuesChanged) onValuesChanged();
 	};
 
 	void updateValue(std::int32_t index) {
 		int newVal = (std::int32_t)_sampleSliders[index].getValue();
 		if (_wavePatternParameters->WavePatternArray[index]->get() != newVal) {
-			_wavePatternParameters->WavePatternArray[index]->beginChangeGesture();
 			*_wavePatternParameters->WavePatternArray[index] = newVal;
-			_wavePatternParameters->WavePatternArray[index]->endChangeGesture();
 		}
+		if (onValuesChanged) onValuesChanged();
 	};
 
 private:
@@ -1731,11 +1790,54 @@ private:
 
 
 	virtual void mouseDown(const MouseEvent& e) override {
+		auto compWidth = getWidth();
+		std::int32_t index = (std::int32_t)(e.position.x * (float)sampleNum / compWidth);
+		index = std::min(index, sampleNum - 1);
+		index = std::max(index, 0);
+
+		if (e.mods.isShiftDown() && e.mods.isPopupMenu()) {
+			if (_wavePatternParameters->LoopEnabled->get()) {
+
+
+
+				if (endStepIndex != -1 && index > endStepIndex) {
+					return;
+				}
+
+
+				const bool wasloopFlag = _wavePatternParameters->isLoopStep[index];
+
+				int endStep = -1;
+				for (int i = 0; i < sampleNum; i++) {
+					if (_wavePatternParameters->isEndStep[i]) {
+						endStep = i;
+						break;
+					}
+				}
+
+				if (endStep == -1 || index <= endStep) {
+					for (int i = 0; i < sampleNum; i++) {
+						_wavePatternParameters->isLoopStep[i] = false;
+					}
+
+					if (!wasloopFlag) {
+						_wavePatternParameters->isLoopStep[index] = true;
+					}
+					/*DBG(loopStepIndex);
+					DBG(endStepIndex);*/
+					if (onValuesChanged) onValuesChanged();
+					repaint();
+				}
+			}
+			return;
+		}
+
 		if (e.mods.isPopupMenu()) {
-			auto compWidth = getWidth();
-			std::int32_t index = (std::int32_t)(e.position.x * (float)sampleNum / compWidth);
-			index = std::min(index, sampleNum - 1);
-			index = std::max(index, 0);
+
+
+			if (loopStepIndex != -1 && index < loopStepIndex) {
+				return;
+			}
 
 			const bool wasEndStep = _wavePatternParameters->isEndStep[index];
 
@@ -1747,6 +1849,7 @@ private:
 				_wavePatternParameters->isEndStep[index] = true;
 			}
 
+			if (onValuesChanged) onValuesChanged();
 			repaint();
 			return;
 		}
@@ -1766,6 +1869,7 @@ private:
 		if (t != nullptr) {
 			_trails.removeObject(t);
 		}
+		if (onValuesChanged) onValuesChanged();
 		repaint();
 	};
 
@@ -1782,7 +1886,10 @@ private:
 	const int sampleNum = 16;
 	Slider _sampleSliders[16];
 	bool* _isEndStep[16] = { false };
+	bool* _isLoopStep[16] = { false };
+
 	int endStepIndex = -1;
+	int loopStepIndex = -1;
 
 	OwnedArray<Trail> _trails;
 
@@ -1792,11 +1899,13 @@ private:
 
 class ArpSliders : public Component, private juce::Timer {
 public:
+	std::function<void()> onValuesChanged;
+
 	ArpSliders(ArpParameters* arpParameters)
 		: _arpParameters(arpParameters),
 		_sampleSliders{} {
 		for (auto i = 0; i < sampleNum; ++i) {
-			_sampleSliders[i].setRange(-24, 24, 1.0);
+			_sampleSliders[i].setRange(-72, 72, 1.0);
 			_sampleSliders[i].setValue(_arpParameters->ArpPatternArray[i]->get(), dontSendNotification);
 		}
 		startTimerHz(10);
@@ -1810,87 +1919,117 @@ public:
 		g.setGradientFill(gradient);
 		g.fillAll();
 
+		float compWidth = getWidth();
+		float compHeight = getHeight();
+		float pixelsPerValue = compHeight / 48.0f;
+		float zeroY = (compHeight / 2.0f) + (scrollOffset * pixelsPerValue);
 
 		for (auto* trail : _trails) {
-			auto compWidth = getWidth();
-			auto compHeight = getHeight();
-
 			std::int32_t index = (std::int32_t)(trail->currentPosition.x *
 				(float)sampleNum / compWidth);
 			index = std::min(index, sampleNum - 1);
 			index = std::max(index, 0);
 			float point = trail->currentPosition.y;
-			std::int32_t value = 24 - (std::int32_t)((point / (float)compHeight) * 48.0f);
-			value = std::max(-24, std::min(24, value));
+
+			std::int32_t value = std::round((zeroY - point) / pixelsPerValue);
+
+			value = std::max((int)_sampleSliders[index].getMinimum(),
+				std::min((int)_sampleSliders[index].getMaximum(), value));
+
 			_sampleSliders[index].setValue(value, dontSendNotification);
 			updateValue(index);
 		}
-		// repaint Sliders
-		{
-			Rectangle<int> bounds = getLocalBounds();
-			float compWidth = getWidth();
-			float stepWidth = compWidth / (float)sampleNum;
 
-			int endStepIndex = -1;
-			for (int step = 0; step < sampleNum; ++step) {
-				if (_arpParameters->isEndStep[step]) {
-					endStepIndex = step;
-					break;
-				}
+		Rectangle<int> bounds = getLocalBounds();
+		float stepWidth = compWidth / (float)sampleNum;
+
+		endStepIndex = -1;
+		loopStepIndex = -1;
+
+		for (int step = 0; step < sampleNum; ++step) {
+			if (_arpParameters->isEndStep[step]) {
+				endStepIndex = step;
+				break;
+			}
+		}
+
+		for (int step = 0; step < sampleNum; ++step) {
+			if (_arpParameters->isLoopStep[step]) {
+				loopStepIndex = step;
+				break;
+			}
+		}
+
+		// end bg
+		if (endStepIndex >= 0 && endStepIndex < sampleNum - 1) {
+			float darkStartX = std::round(stepWidth * (endStepIndex + 1));
+			g.setColour(Colour(10, 13, 15).withAlpha(0.45f));
+			g.fillRect(Rectangle<float>(
+				darkStartX,
+				0.0f,
+				compWidth - darkStartX,
+				(float)getHeight()));
+		}
+		// loop bg
+		if (loopStepIndex >= 0 && loopStepIndex < sampleNum - 1) {
+			float darkEndX = loopStepIndex * stepWidth;
+			g.setColour(Colour(10, 13, 15).withAlpha(0.25f));
+			g.fillRect(Rectangle<float>(
+				darkEndX,
+				0.0f,
+				(float)getWidth() - darkEndX,
+				(float)getHeight()));
+		}
+
+		// sliders
+		for (auto i = 0; i < sampleNum; ++i) {
+			auto val = _sampleSliders[i].getValue();
+
+			float barY = zeroY;
+			float barHeight = val * pixelsPerValue;
+
+			if (val > 0) {
+				barY -= barHeight;
+			}
+			else {
+				barHeight = -barHeight;
 			}
 
-			if (endStepIndex >= 0 && endStepIndex < sampleNum - 1) {
-				float darkStartX = std::round((compWidth / (float)sampleNum) * (endStepIndex + 1));
-				g.setColour(Colour(10, 13, 15).withAlpha(0.65f));
-				g.fillRect(Rectangle<float>(
-					darkStartX,
-					0.0f,
-					compWidth - darkStartX,
-					(float)getHeight()));
+			auto barWidth = compWidth / (float)sampleNum;
+			Rectangle<float> area2 = Rectangle<float>(
+				i * barWidth,
+				barY,
+				barWidth,
+				std::max(2.0f, barHeight));
+
+			Colour barColour(200, 48, 48);
+
+			if (endStepIndex >= 0 && i > endStepIndex) {
+				barColour = Colour(110, 18, 29);
 			}
-			// draw slider
-			for (auto i = 0; i < sampleNum; ++i) {
-				auto val = _sampleSliders[i].getValue();
-				float centerY = getHeight() / 2.0f;
-				float barY = centerY;
-				float barHeight = val * (getHeight() / 48.0f);
-				if (val > 0) {
-					barY -= barHeight;
-				}
-				else {
-					barHeight = -barHeight;
-				}
-
-				auto barWidth = compWidth / (float)sampleNum;
-				Rectangle<float> area2 = Rectangle<float>(
-					i * barWidth,
-					barY,
-					barWidth,
-					std::max(2.0f, barHeight));
-
-				g.setColour(_arpParameters->isEndStep[i] ? Colour(220, 50, 50)
-					: Colour(200, 48, 48));
-				g.fillRect(area2.reduced(0.5f));
-				Colour barColour(200, 48, 48);
-				if (i == endStepIndex) {
-					barColour = Colours::white;
-				}
-				else if (endStepIndex >= 0 && i > endStepIndex) {
-					barColour = Colour(110, 18, 29);
-				}
-				g.setColour(barColour);
-				g.fillRect(area2.reduced(0.5f));
+			else if (loopStepIndex >= 0 && i < loopStepIndex) {
+				barColour = Colour(200, 48, 48);
 			}
-			// draw grid
-			for (auto i = 1; i < 48; ++i) {
-				float p_y = getHeight() / 48.0f * i;
-				Line<float> line(0.0f, p_y, (float)getWidth(), p_y);
-				g.setColour(i == 24 ? Colour(20, 20, 20) : Colour(26, 33, 38));
-				g.drawLine(line, i == 24 ? 2.0f : 1.5f);
+			else if (i == endStepIndex) {
+				barColour = Colours::white;
+			}
 
-				int pitchValue = 24 - i;
-				if (pitchValue == 12 || pitchValue == -12) {
+			g.setColour(barColour);
+			g.fillRect(area2.reduced(0.5f));
+		}
+
+		// grid
+		for (int pitchValue = -72; pitchValue <= 72; ++pitchValue) {
+			float p_y = zeroY - (pitchValue * pixelsPerValue);
+
+			if (p_y >= 0.0f && p_y <= compHeight) {
+				Line<float> line(0.0f, p_y, compWidth, p_y);
+				g.setColour(pitchValue == 0 ? Colour(20, 20, 20) : Colour(26, 33, 38));
+				g.drawLine(line, pitchValue == 0 ? 2.0f : 1.5f);
+
+				if (std::abs(pitchValue % 12) == 0) {
 					String labelText = (pitchValue > 0) ? "+" + String(pitchValue) : String(pitchValue);
+
 					g.setColour(pitchValue == 0 ? Colours::white : Colours::white.withAlpha(0.6f));
 					g.setFont(12.0f);
 					int labelWidth = 30;
@@ -1900,35 +2039,62 @@ public:
 					g.drawText(labelText, textBounds, Justification::centredLeft, false);
 				}
 			}
-
-			for (auto i = 1; i < sampleNum; ++i) {
-				float p_x = std::round((compWidth / (float)sampleNum) * i);
-
-				Line<float> line(p_x, 0.0f, p_x, (float)getHeight());
-				g.setColour(Colour(20, 20, 20));
-				g.drawLine(line, 1.5f);
-			}
 		}
-	};
+
+		// grid
+		for (auto i = 1; i < sampleNum; ++i) {
+			float p_x = std::round((compWidth / (float)sampleNum) * i);
+			Line<float> line(p_x, 0.0f, p_x, (float)getHeight());
+			g.setColour(Colour(20, 20, 20));
+			g.drawLine(line, 1.5f);
+		}
+
+		// loop marker
+		if (loopStepIndex >= 0 && loopStepIndex < sampleNum) {
+			float barWidth = compWidth / (float)sampleNum;
+			float lineX = loopStepIndex * barWidth;
+
+			g.setColour(Colour(200, 48, 48));
+			g.drawLine(lineX + 2, 0.0f, lineX + 2, (float)getHeight(), 2.0f);
+
+			Path loopFlag;
+			loopFlag.startNewSubPath(0.f, 0.f);
+			loopFlag.lineTo(2.f, 0.f);
+			loopFlag.lineTo(-2.f, 0.f);
+			loopFlag.lineTo(0.f, 0.f);
+			loopFlag.lineTo(0.f, -10.f);
+			loopFlag.lineTo(-3.f, -7.f);
+			loopFlag.lineTo(0.f, -5.f);
+
+			loopFlag.applyTransform(AffineTransform::translation(lineX + 10, 15.f));
+
+			g.setColour(Colour(240, 70, 70));
+			g.strokePath(loopFlag, PathStrokeType(1.5f));
+			g.fillPath(loopFlag);
+		}
+	}
+
 
 	void updateValue() {
 		for (auto i = 0; i < sampleNum; ++i) {
 			int newVal = (std::int32_t)_sampleSliders[i].getValue();
 			if (_arpParameters->ArpPatternArray[i]->get() != newVal) {
-				_arpParameters->ArpPatternArray[i]->beginChangeGesture();
+				//_arpParameters->ArpPatternArray[i]->beginChangeGesture();
 				*_arpParameters->ArpPatternArray[i] = newVal;
-				_arpParameters->ArpPatternArray[i]->endChangeGesture();
+				//_arpParameters->ArpPatternArray[i]->endChangeGesture();
 			}
 		}
+		if (onValuesChanged) onValuesChanged();
 	};
 
 	void updateValue(std::int32_t index) {
 		int newVal = (std::int32_t)_sampleSliders[index].getValue();
 		if (_arpParameters->ArpPatternArray[index]->get() != newVal) {
-			_arpParameters->ArpPatternArray[index]->beginChangeGesture();
+			//_arpParameters->ArpPatternArray[index]->beginChangeGesture();
 			*_arpParameters->ArpPatternArray[index] = newVal;
-			_arpParameters->ArpPatternArray[index]->endChangeGesture();
+			//_arpParameters->ArpPatternArray[index]->endChangeGesture();
 		}
+		if (onValuesChanged) onValuesChanged();
 	};
 
 private:
@@ -1955,11 +2121,54 @@ private:
 	};
 
 	virtual void mouseDown(const MouseEvent& e) override {
+		auto compWidth = getWidth();
+		std::int32_t index = (std::int32_t)(e.position.x * (float)sampleNum / compWidth);
+		index = std::min(index, sampleNum - 1);
+		index = std::max(index, 0);
+
+		if (e.mods.isShiftDown() && e.mods.isPopupMenu()) {
+			if (_arpParameters->LoopEnabled->get()) {
+
+
+
+				if (endStepIndex != -1 && index > endStepIndex) {
+					return;
+				}
+
+
+				const bool wasloopFlag = _arpParameters->isLoopStep[index];
+
+				int endStep = -1;
+				for (int i = 0; i < sampleNum; i++) {
+					if (_arpParameters->isEndStep[i]) {
+						endStep = i;
+						break;
+					}
+				}
+
+				if (endStep == -1 || index <= endStep) {
+					for (int i = 0; i < sampleNum; i++) {
+						_arpParameters->isLoopStep[i] = false;
+					}
+
+					if (!wasloopFlag) {
+						_arpParameters->isLoopStep[index] = true;
+					}
+					/*DBG(loopStepIndex);
+					DBG(endStepIndex);*/
+					if (onValuesChanged) onValuesChanged();
+					repaint();
+				}
+			}
+			return;
+		}
+
 		if (e.mods.isPopupMenu()) {
-			auto compWidth = getWidth();
-			std::int32_t index = (std::int32_t)(e.position.x * (float)sampleNum / compWidth);
-			index = std::min(index, sampleNum - 1);
-			index = std::max(index, 0);
+
+
+			if (loopStepIndex != -1 && index < loopStepIndex) {
+				return;
+			}
 
 			const bool wasEndStep = _arpParameters->isEndStep[index];
 
@@ -1971,6 +2180,7 @@ private:
 				_arpParameters->isEndStep[index] = true;
 			}
 
+			if (onValuesChanged) onValuesChanged();
 			repaint();
 			return;
 		}
@@ -1990,8 +2200,24 @@ private:
 		if (t != nullptr) {
 			_trails.removeObject(t);
 		}
+		if (onValuesChanged) onValuesChanged();
 		repaint();
 	};
+
+	virtual void mouseWheelMove(const juce::MouseEvent& event,
+		const juce::MouseWheelDetails& wheel) override
+	{
+		float speedMultiplier = event.mods.isShiftDown() ? 6.0f : 2.0f;
+
+		if (wheel.deltaY != 0.0f)
+		{
+			scrollOffset += (wheel.deltaY > 0.0f) ? speedMultiplier : -speedMultiplier;
+
+			scrollOffset = juce::jlimit(-48.0f, 48.0f, scrollOffset);
+		}
+
+		repaint();
+	}
 
 	Trail* getTrail(const MouseInputSource& source) {
 		for (auto* trail : _trails) {
@@ -2002,10 +2228,14 @@ private:
 
 	ArpParameters* _arpParameters;
 
+	float scrollOffset = 0.0f;
+
 	const int sampleNum = 16;
 	Slider _sampleSliders[16];
 	bool* _isEndStep[16] = { false };
+	bool* _isLoopStep[16] = { false };
 	int endStepIndex = -1;
+	int loopStepIndex = -1;
 
 	OwnedArray<Trail> _trails;
 };

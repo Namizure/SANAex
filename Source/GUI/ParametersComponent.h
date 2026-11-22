@@ -187,7 +187,8 @@ private:
 class WaveformMemoryParametersComponent : public Component,
 	Button::Listener,
 	public FileDragAndDropTarget,
-	public FileBrowserListener {
+	public FileBrowserListener,
+	private juce::Timer {
 public:
 	WaveformMemoryParametersComponent(WaveformMemoryParameters* waveformMemoryParams,
 		AudioProcessor& processor,
@@ -198,14 +199,25 @@ public:
 	virtual void resized() override;
 
 	// I'm going to test out making my own function.
+
+	void copyWaveform(int index);
+	void pasteWaveform(int index);
+
 	void setWaveformIndex(int index);
+	void resetWaveformIndex() { setWaveformIndex(0); }
 	WaveSampleSliders waveRangeSlider;
 
 	function<void(const String&)> onAddWaveform;
 
 	function<void(const int&)> requestChange;
 
+	std::function<void()> onParamsChanged;
+
 private:
+	virtual void timerCallback() override;
+	int lastProgIndex = -1;
+	juce::AudioParameterInt* programIndexParam = nullptr;
+
 	ChipOscillatorParameters* _chipOscParamsPtr;
 	// this will keep track of which waveformarray we are in.
 	int currentWaveformIndex = 0;
@@ -311,7 +323,7 @@ public:
 	}
 
 	function<void(const int&)> onSwitchWaveform;
-
+	std::function<void()> onParamsChanged;
 
 	void refreshWaveformList() {
 		StringArray fullList;
@@ -398,10 +410,13 @@ public:
 	virtual void buttonClicked(Button* button) override;
 	virtual void sliderValueChanged(Slider* slider) override;
 
+	std::function<void()> onParamsChanged;
+
 private:
 	ArpParameters* _arpParameters;
 	SwitchButton _loopSwitch;
 	SwitchButton _enableSwitch;
+	SwitchButton _fixedSwitch;
 	TextSliderSmall _stepTimeSlider;
 	ArpSliders _rangeSliders;
 };

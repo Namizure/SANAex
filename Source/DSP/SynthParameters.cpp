@@ -180,6 +180,8 @@ WaveformMemoryParameters::WaveformMemoryParameters() {
 }
 
 
+
+
 AudioParameterInt** WaveformMemoryParameters::getWaveformArray(int waveformIndex) {
 	if (waveformIndex < 0 || waveformIndex >= currentNumWaveforms) {
 		DBG("Invalid waveform index: " + String(waveformIndex) + " / " + String(currentNumWaveforms));
@@ -201,13 +203,26 @@ void WaveformMemoryParameters::addNewWaveform(AudioProcessor& processor) {
 	currentNumWaveforms++;
 }
 
-void WaveformMemoryParameters::addAllParameters(AudioProcessor& processor) {
+WaveformMemoryParameters::~WaveformMemoryParameters() {
 	for (int i = 0; i < MAX_WAVEFORMS; ++i) {
-		for (int j = 0; j < WAVESAMPLE_LENGTH; ++j) {
-			processor.addParameter(WaveSamplesArrays[i][j]);
+		for (auto* j : WaveSamplesArrays[i]) {
+			delete j;
 		}
+		WaveSamplesArrays[i].clear();
 	}
 }
+
+
+void WaveformMemoryParameters::addAllParameters(AudioProcessor& processor) {
+	//for (int i = 0; i < MAX_WAVEFORMS; ++i) {
+		//for (int j = 0; j < WAVESAMPLE_LENGTH; ++j) {
+			//processor.addParameter(WaveSamplesArrays[i][j]);
+		//}
+	//}
+}
+
+
+
 
 
 
@@ -308,6 +323,7 @@ void FilterParameters::loadParameters(XmlElement& xml) {
 
 PresetsParameters::PresetsParameters() {
 	ProgramIndex = new AudioParameterInt("PROGRAM_INDEX", "Program-Index", 0, NUM_OF_PRESETS, 0);
+	DrumMode = new AudioParameterBool("DRUM_MODE", "Drum-Mode", false);
 }
 
 void PresetsParameters::addAllParameters(AudioProcessor& processor) {
@@ -316,10 +332,12 @@ void PresetsParameters::addAllParameters(AudioProcessor& processor) {
 
 void PresetsParameters::saveParameters(XmlElement& xml) {
 	xml.setAttribute(ProgramIndex->paramID, ProgramIndex->get());
+	xml.setAttribute(DrumMode->paramID, DrumMode->get());
 }
 
 void PresetsParameters::loadParameters(XmlElement& xml) {
 	*ProgramIndex = xml.getIntAttribute(ProgramIndex->paramID, 0);
+	*DrumMode = xml.getBoolAttribute(DrumMode->paramID, false);
 }
 
 //-----------------------------------------------------------------------------------------
@@ -343,16 +361,30 @@ WavePatternParameters::WavePatternParameters() {
 }
 
 void WavePatternParameters::addAllParameters(AudioProcessor& processor) {
-	for (auto i = 0; i < WAVEPATTERN_LENGTH; ++i) {
-		processor.addParameter(WavePatternArray[i]);
-	}
-	for (auto i = 0; i < WAVEPATTERN_TYPES; ++i) {
-		processor.addParameter(WaveTypes[i]);
-	}
+	//for (auto i = 0; i < WAVEPATTERN_LENGTH; ++i) {
+	//	processor.addParameter(WavePatternArray[i]);
+	//}
+	//for (auto i = 0; i < WAVEPATTERN_TYPES; ++i) {
+	//	processor.addParameter(WaveTypes[i]);
+	//}
 	processor.addParameter(PatternEnabled);
 	processor.addParameter(LoopEnabled);
 	processor.addParameter(StepTime);
 }
+
+WavePatternParameters::~WavePatternParameters() {
+	for (int i = 0; i < WAVEPATTERN_LENGTH; ++i) {
+		delete WavePatternArray[i];
+		WavePatternArray[i] = nullptr;
+	}
+
+	for (int i = 0; i < WAVEPATTERN_TYPES; ++i) {
+		delete WaveTypes[i];
+		WaveTypes[i] = nullptr;
+	}
+
+}
+
 
 void WavePatternParameters::saveParameters(XmlElement& xml) {
 	for (auto i = 0; i < WAVEPATTERN_LENGTH; ++i) {
@@ -363,7 +395,10 @@ void WavePatternParameters::saveParameters(XmlElement& xml) {
 	}
 	for (auto i = 0; i < WAVEPATTERN_LENGTH; ++i) {
 		xml.setAttribute("WP_EndStep_" + String(i), isEndStep[i]);
+		xml.setAttribute("WP_LoopStep_" + String(i), isLoopStep[i]);
 	}
+
+
 	xml.setAttribute(PatternEnabled->paramID, (double)PatternEnabled->get());
 	xml.setAttribute(LoopEnabled->paramID, (double)LoopEnabled->get());
 	xml.setAttribute(StepTime->paramID, (double)StepTime->get());
@@ -378,7 +413,9 @@ void WavePatternParameters::loadParameters(XmlElement& xml) {
 	}
 	for (auto i = 0; i < WAVEPATTERN_LENGTH; ++i) {
 		isEndStep[i] = xml.getBoolAttribute("WP_EndStep_" + String(i), false);
+		isLoopStep[i] = xml.getBoolAttribute("WP_LoopStep_" + String(i), false);
 	}
+
 	*PatternEnabled = xml.getBoolAttribute(PatternEnabled->paramID, false);
 	*LoopEnabled = xml.getBoolAttribute(LoopEnabled->paramID, true);
 	*StepTime = xml.getDoubleAttribute(StepTime->paramID, 0.10f);
@@ -389,40 +426,60 @@ void WavePatternParameters::loadParameters(XmlElement& xml) {
 ArpParameters::ArpParameters() {
 	for (auto i = 0; i < ARP_LENGTH; ++i) {
 		std::string name = "ArpPattern" + std::to_string(i);
-		ArpPatternArray[i] = new AudioParameterInt(name, name, -24, 24, 0);
+		ArpPatternArray[i] = new AudioParameterInt(name, name, -72, 72, 0);
 	}
 	ArpEnabled = new AudioParameterBool("ARP_ENABLE", "Arp-Enable", false);
-	ArpStepTime = new AudioParameterFloat("ARP_STEP_TIME", "Arp-Step-Time", { 0.010f, 0.5f, MIN_DELTA }, 0.050f);
+	ArpStepTime = new AudioParameterFloat("ARP_STEP_TIME", "Arp-Step-Time", { 0.000f, 0.5000f, MIN_DELTA }, 0.10f);
 	LoopEnabled = new AudioParameterBool("ARP_LOOP_ENABLE", "Arp-Loop-Enable", true);
+	FixedEnabled = new AudioParameterBool("ARP_FIXED", "Arp-Fixed", false);
+	FixedNote = new AudioParameterInt("ARP_FIXED_NOTE", "Arp-Fixed-Note", 0, 127, 60);
 }
 
 void ArpParameters::addAllParameters(AudioProcessor& processor) {
-	for (auto i = 0; i < ARP_LENGTH; ++i) {
-		processor.addParameter(ArpPatternArray[i]);
-	}
+	//for (auto i = 0; i < ARP_LENGTH; ++i) {
+	//	processor.addParameter(ArpPatternArray[i]);
+	//}
 	processor.addParameter(ArpEnabled);
 	processor.addParameter(LoopEnabled);
 	processor.addParameter(ArpStepTime);
+	processor.addParameter(FixedEnabled);
+	processor.addParameter(FixedNote);
+}
+
+
+ArpParameters::~ArpParameters() {
+	for (int i = 0; i < ARP_LENGTH; ++i) {
+		delete ArpPatternArray[i];
+		ArpPatternArray[i] = nullptr;
+	}
 }
 
 void ArpParameters::saveParameters(XmlElement& xml) {
 	for (auto i = 0; i < ARP_LENGTH; ++i) {
 		xml.setAttribute(ArpPatternArray[i]->paramID, (std::int32_t)ArpPatternArray[i]->get());
 		xml.setAttribute("Arp_EndStep_" + String(i), isEndStep[i]);
+		xml.setAttribute("Arp_LoopStep_" + String(i), isLoopStep[i]);
 	}
+
 	xml.setAttribute(ArpEnabled->paramID, ArpEnabled->get());
-	xml.setAttribute(LoopEnabled->paramID, (double)LoopEnabled->get());
+	xml.setAttribute(LoopEnabled->paramID, LoopEnabled->get());
 	xml.setAttribute(ArpStepTime->paramID, (double)ArpStepTime->get());
+	xml.setAttribute(FixedEnabled->paramID, FixedEnabled->get());
+	xml.setAttribute(FixedNote->paramID, FixedNote->get());
 }
 
 void ArpParameters::loadParameters(XmlElement& xml) {
 	for (auto i = 0; i < ARP_LENGTH; ++i) {
 		*ArpPatternArray[i] = xml.getIntAttribute(ArpPatternArray[i]->paramID, 0);
 		isEndStep[i] = xml.getBoolAttribute("Arp_EndStep_" + String(i), false);
+		isLoopStep[i] = xml.getBoolAttribute("Arp_LoopStep_" + String(i), false);
 	}
+
 	*ArpEnabled = xml.getBoolAttribute(ArpEnabled->paramID, false);
 	*LoopEnabled = xml.getBoolAttribute(LoopEnabled->paramID, true);
 	*ArpStepTime = xml.getDoubleAttribute(ArpStepTime->paramID, 0.10f);
+	*FixedEnabled = xml.getBoolAttribute(FixedEnabled->paramID, false);
+	*FixedNote = xml.getIntAttribute(FixedNote->paramID, 60);
 }
 
 //-----------------------------------------------------------------------------------------

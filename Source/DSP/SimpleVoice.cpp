@@ -15,7 +15,9 @@ SimpleVoice::SimpleVoice(
 	MidiEchoParameters* midiEchoParams,
 	WaveformMemoryParameters* waveformMemoryParams,
 	WavePatternParameters* wavePatternParams,
-	ArpParameters* arpParams)
+	ArpParameters* arpParams,
+	PresetsParameters* presetsParams,
+	Service::PresetManager* presetManager)
 	: _chipOscParamsPtr(chipOscParams),
 	_sweepParamsPtr(sweepParams),
 	_vibratoParamsPtr(vibratoParams),
@@ -25,6 +27,8 @@ SimpleVoice::SimpleVoice(
 	_waveformMemoryParamsPtr(waveformMemoryParams),
 	_wavePatternParams(wavePatternParams),
 	_arpParamsPtr(arpParams),
+	_presetsParamsPtr(presetsParams),
+	_presetManagerPtr(presetManager),
 	ampEnv(chipOscParams->Attack->get(), chipOscParams->Decay->get(),
 		chipOscParams->Sustain->get(), chipOscParams->Release->get(),
 		midiEchoParams->EchoDuration->get()* midiEchoParams->EchoRepeat->get()),
@@ -46,6 +50,16 @@ void SimpleVoice::startNote(int midiNoteNumber, float velocity,
 	int currentPitchWheelPosition) {
 	DBG("[StartNote] NoteNumber: " + juce::String(midiNoteNumber) +
 		", Velocity: " + juce::String(velocity));
+	const bool drumMode = _presetsParamsPtr->DrumMode->get();
+	const Service::DrumPreset* pad = drumMode ? _presetManagerPtr->getDrumPreset(midiNoteNumber - DRUM_BASE_NOTE) : nullptr;
+
+	if (drumMode && pad == nullptr) {
+		clearCurrentNote();
+		return;
+	}
+
+	const int pitchNote = (pad != nullptr) ? 60 : midiNoteNumber;
+	currentMidiNote = pitchNote;
 
 	if (!canStartNote()) {
 		return;
@@ -56,17 +70,22 @@ void SimpleVoice::startNote(int midiNoteNumber, float velocity,
 	}
 	clear();
 
-	eb.updateParam(_midiEchoParamsPtr->EchoDuration->get(),
-		_midiEchoParamsPtr->EchoRepeat->get());
+	isDrumVoice = (pad != nullptr);
+	if (isDrumVoice) {
+		drumPreset = *pad;
+		eb.updateParam(drumPreset.echoDuration, drumPreset.echoRepeat);
+	}
+	else {
+		eb.updateParam(_midiEchoParamsPtr->EchoDuration->get(),
+			_midiEchoParamsPtr->EchoRepeat->get());
+	}
 
 	velocity = std::max(0.01f, velocity);
 	level = velocity * 0.8f;
 
 	pitchBend = ((float)currentPitchWheelPosition - 8192.0f) / 8192.0f;
-
-	// 生成する波形のピッチを再現するサンプルデータ間の角度差⊿θ[rad]の値を決定する。
 	float cyclesPerSecond = (float)MidiMessage::getMidiNoteInHertz(
-		midiNoteNumber, _optionsParamsPtr->PitchStandard->get());
+		pitchNote, _optionsParamsPtr->PitchStandard->get());
 	float cyclesPerSample = (float)cyclesPerSecond / (float)getSampleRate();
 	angleDelta = cyclesPerSample * TWO_PI;
 
@@ -75,22 +94,19 @@ void SimpleVoice::startNote(int midiNoteNumber, float velocity,
 	portaEnv.attackStart();
 	//colorEnv.clear();
 	patternWaveClear();
-	currentWaveIndex = _chipOscParamsPtr->OscWaveType->getIndex();
+	currentWaveIndex = isDrumVoice ? drumPreset.waveType : _chipOscParamsPtr->OscWaveType->getIndex();
 
-	// 波形パターン初期設定
-	if (_wavePatternParams->PatternEnabled->get()) {
+	if (isDrumVoice ? drumPreset.patternEnabled : _wavePatternParams->PatternEnabled->get()) {
 		patternIndex = -1;
 		patternCounter = 99999999;
 	}
 
-	if (_arpParamsPtr->ArpEnabled->get()) {
+	if (isDrumVoice ? drumPreset.arpEnabled : _arpParamsPtr->ArpEnabled->get()) {
 		arpIndex = -1;
 		arpCounter = 99999999;
 	}
 }
 
-/// キーリリースだとallowTailOff == true
-/// キーリリース直後のボイススチールではallowTailOff == false
 void SimpleVoice::stopNote(float /*velocity*/, bool allowTailOff) {
 	DBG("stopNote : " + juce::String((std::int32_t)allowTailOff));
 
@@ -99,12 +115,8 @@ void SimpleVoice::stopNote(float /*velocity*/, bool allowTailOff) {
 		ampEnv.releaseStart();
 		return;
 	}
-	// キーホールド中(ADSのいずれか)であればangleDeltaをリリース状態に移行
 	if (ampEnv.isHolding()) {
-		//ポルタメント処理，一つ前のピッチを記憶しておく
 		portaAngleDelta = angleDelta;
-
-		// NOTE: ボイススチールを受けて直ぐに音量を0にしてしまうと、急峻な変化となりノイズの発生を引き起こすため、それを予防する処理。
 		ampEnv.releaseStart();
 		return;
 	}
@@ -119,33 +131,48 @@ void SimpleVoice::pitchWheelMoved(int newPitchWheelValue) {
 	pitchBend = ((float)newPitchWheelValue - 8192.0f) / 8192.0f;
 }
 
-void SimpleVoice::controllerMoved(int /*controllerNumber*/,
-	int /*newControllerValue*/) {
+void SimpleVoice::controllerMoved(int x,
+	int y) {
 }
 
 void SimpleVoice::renderNextBlock(AudioBuffer<float>& outputBuffer,
 	int startSample, int numSamples) {
-	// 現状のパラメータを取得しておく
-	// NOTE: 適宜取得すると何度も取得関数が走るため重くなる
-	auto activeWaveIndex = currentWaveIndex;
-	auto isEchoEnabled = _midiEchoParamsPtr->IsEchoEnable->get();
-	auto echoRepeatCount = _midiEchoParamsPtr->EchoRepeat->get();
-	auto isVibratoEnabled = _vibratoParamsPtr->VibratoEnable->get();
-	auto isInVibratoDelay =
-		(_vibratoParamsPtr->VibratoAttackDeleySwitch->get() == false) &&
-		(vibratoEnv.getState() == AmpEnvelope::AMPENV_STATE::ATTACK);
-	auto vibratoSpeed = _vibratoParamsPtr->VibratoSpeed->get();
-	auto pitchBendRange = _optionsParamsPtr->PitchBendRange->get();
-	auto isPortaMode = (_voicingParamsPtr->VoicingSwitch->getCurrentChoiceName() == "PORTAMENTO");
-	auto isPositiveSweepEnbaled = (_sweepParamsPtr->SweepSwitch->getCurrentChoiceName() == "POSITIVE");
-	auto isNegativeSweepEnbaled = (_sweepParamsPtr->SweepSwitch->getCurrentChoiceName() == "NEGATIVE");
-	auto sweepTime = (float)_sweepParamsPtr->SweepTime->get();
-	auto isPatternWaveEnabled = (float)_wavePatternParams->PatternEnabled->get();
-	auto isPatternLoopEnabled = (float)_wavePatternParams->LoopEnabled->get();
-	patternStepNum = (float)_wavePatternParams->StepTime->get() * getSampleRate();
 
-	auto isArpEnabled = _arpParamsPtr->ArpEnabled->get();
-	arpStepNum = _arpParamsPtr->ArpStepTime->get() * getSampleRate();
+	const Service::DrumPreset* pad = isDrumVoice ? &drumPreset : nullptr;
+
+	auto activeWaveIndex = currentWaveIndex;
+	auto isEchoEnabled = pad ? pad->echoEnabled : _midiEchoParamsPtr->IsEchoEnable->get();
+	auto echoRepeatCount = pad ? pad->echoRepeat : _midiEchoParamsPtr->EchoRepeat->get();
+	auto echoDuration = pad ? pad->echoDuration : _midiEchoParamsPtr->EchoDuration->get();
+	auto echoVolumeOffset = pad ? pad->echoVolumeOffset : _midiEchoParamsPtr->VolumeOffset->get();
+	auto isVibratoEnabled = pad ? pad->vibratoEnabled : _vibratoParamsPtr->VibratoEnable->get();
+	auto isInVibratoDelay =
+		((pad ? pad->vibratoAttackDelaySwitch : _vibratoParamsPtr->VibratoAttackDeleySwitch->get()) == false) &&
+		(vibratoEnv.getState() == AmpEnvelope::AMPENV_STATE::ATTACK);
+	auto vibratoSpeed = pad ? pad->vibratoSpeed : _vibratoParamsPtr->VibratoSpeed->get();
+	auto pitchBendRange = _optionsParamsPtr->PitchBendRange->get();
+	auto isPortaMode = !pad && (_voicingParamsPtr->VoicingSwitch->getCurrentChoiceName() == "PORTAMENTO");
+	auto sweepMode = pad ? pad->sweepMode : _sweepParamsPtr->SweepSwitch->getIndex();
+	auto isPositiveSweepEnbaled = (sweepMode == 1);
+	auto isNegativeSweepEnbaled = (sweepMode == 2);
+	auto sweepTime = pad ? pad->sweepTime : (float)_sweepParamsPtr->SweepTime->get();
+	auto isPatternWaveEnabled = pad ? pad->patternEnabled : _wavePatternParams->PatternEnabled->get();
+	auto isPatternLoopEnabled = pad ? pad->patternLoopEnabled : _wavePatternParams->LoopEnabled->get();
+	patternStepNum = (pad ? pad->patternStepTime : (float)_wavePatternParams->StepTime->get()) * getSampleRate();
+
+	auto isArpEnabled = pad ? pad->arpEnabled : _arpParamsPtr->ArpEnabled->get();
+	auto isArpLoopEnabled = pad ? pad->arpLoopEnabled : _arpParamsPtr->LoopEnabled->get();
+	auto isFixedArp = pad ? pad->arpFixed : _arpParamsPtr->FixedEnabled->get();
+	arpStepNum = (pad ? pad->arpStepTime : _arpParamsPtr->ArpStepTime->get()) * getSampleRate();
+
+	const bool* arpEndSteps = pad ? pad->stepFlags.arpEnd : _arpParamsPtr->isEndStep;
+	const bool* arpLoopSteps = pad ? pad->stepFlags.arpLoop : _arpParamsPtr->isLoopStep;
+	const bool* patternEndSteps = pad ? pad->stepFlags.wavePatternEnd : _wavePatternParams->isEndStep;
+	const bool* patternLoopSteps = pad ? pad->stepFlags.wavePatternLoop : _wavePatternParams->isLoopStep;
+
+	const float presetGain = pad
+		? Decibels::decibelsToGain(pad->volumeDb - _chipOscParamsPtr->VolumeLevel->get())
+		: 1.0f;
 
 	SimpleSound* playingSound = static_cast<SimpleSound*>(getCurrentlyPlayingSound().get());
 	if (playingSound == nullptr) {
@@ -154,19 +181,15 @@ void SimpleVoice::renderNextBlock(AudioBuffer<float>& outputBuffer,
 	}
 
 	updateEnvParams(ampEnv, vibratoEnv, portaEnv);
-	eb.updateParam(_midiEchoParamsPtr->EchoDuration->get(), _midiEchoParamsPtr->EchoRepeat->get());
+	eb.updateParam(echoDuration, echoRepeatCount);
 
 	while (--numSamples >= 0) {
-		// エンベロープにおいて，エフェクトエコーが終わっている or
-		// リリース状態のとき
 		if ((ampEnv.isReleaseEnded()) ||
 			(isEchoEnabled && ampEnv.isEchoEnded())) {
 			clearCurrentNote();
 			clear();
 			break;
 		}
-
-		// 現在のサンプル値を計算する 
 		float modulationFactor = 0.0f;
 		if (!(isVibratoEnabled) || isInVibratoDelay) {
 			modulationFactor = 0.0f;
@@ -180,46 +203,47 @@ void SimpleVoice::renderNextBlock(AudioBuffer<float>& outputBuffer,
 		const auto sweepFactor = pow(2.0f, pitchSweep);
 
 		float customArpFactor = 1.0f;
+		//////////////////////
 		if (isArpEnabled) {
-
 			int actualEndStepIndex = -1;
+			int actualLoopStepIndex = 0;
+
 			for (int i = 0; i < ArpParameters::ARP_LENGTH; i++) {
-				if (_arpParamsPtr->isEndStep[i]) {
+				if (arpEndSteps[i]) {
 					actualEndStepIndex = i;
-					break;
 				}
+				if (arpLoopSteps[i]) {
+					actualLoopStepIndex = i;
+				}
+			}
+			// if loop is placed after end, set to 0 just in case
+			if (actualEndStepIndex >= 0 && actualLoopStepIndex > actualEndStepIndex) {
+				actualLoopStepIndex = 0;
 			}
 
-			int arpLoopLength = ArpParameters::ARP_LENGTH;
-			if (actualEndStepIndex >= 0) {
-				arpLoopLength = actualEndStepIndex + 1;
+			// check arpLoopLength based on eithe rMAX length or the end step
+			int arpLoopLength = (actualEndStepIndex >= 0) ? (actualEndStepIndex + 1) : ArpParameters::ARP_LENGTH;
+
+			if (arpIndex >= arpLoopLength) {
+				arpIndex = isArpLoopEnabled ? actualLoopStepIndex : std::max(0, arpLoopLength - 1);
 			}
-			else {
-				for (int i = ArpParameters::ARP_LENGTH - 1; i >= 0; i--) {
-					if (_arpParamsPtr->ArpPatternArray[i]->get() != 0) {
-						arpLoopLength = i + 1;
-						break;
-					}
-				}
-			}
-			bool canAdvance = _arpParamsPtr->LoopEnabled->get() || (arpIndex < arpLoopLength - 1);
+
+			bool canAdvance = isArpLoopEnabled || (arpIndex < arpLoopLength - 1);
+
 			if (canAdvance) {
 				arpCounter++;
 				if (arpCounter >= arpStepNum) {
 					arpCounter = 0;
 					int previousArpIndex = arpIndex;
 					arpIndex++;
+
 					if (arpIndex >= arpLoopLength) {
-						int prevDegree = _arpParamsPtr->ArpPatternArray[std::max(0, std::min(previousArpIndex, ArpParameters::ARP_LENGTH - 1))]->get();
-						int nextDegree = _arpParamsPtr->ArpPatternArray[0]->get();
-						float prevFactor = pow(2.0f, (float)prevDegree / 12.0f);
-						float nextFactor = pow(2.0f, (float)nextDegree / 12.0f);
-
-						if (nextFactor > 0.0f) {
-							currentAngle = fmod(currentAngle * (prevFactor / nextFactor), TWO_PI);
+						if (isArpLoopEnabled) {
+							arpIndex = actualLoopStepIndex;
 						}
-
-						arpIndex = 0;
+						else {
+							arpIndex = arpLoopLength - 1;
+						}
 					}
 				}
 			}
@@ -227,19 +251,24 @@ void SimpleVoice::renderNextBlock(AudioBuffer<float>& outputBuffer,
 				arpIndex = std::max(0, arpLoopLength - 1);
 			}
 
-			int arpDegree = _arpParamsPtr->ArpPatternArray[std::max(0, std::min(arpIndex, ArpParameters::ARP_LENGTH - 1))]->get();
-			customArpFactor = pow(2.0f, (float)arpDegree / 12.0f);
+			const int arpStep = std::max(0, std::min(arpIndex, ArpParameters::ARP_LENGTH - 1));
+			int arpDegree = pad ? pad->arpPattern[arpStep] : _arpParamsPtr->ArpPatternArray[arpStep]->get();
+
+			if (isFixedArp) {
+				const int fixedRootNote = 60;
+				customArpFactor = pow(2.0f, (float)(fixedRootNote + arpDegree - currentMidiNote) / 12.0f);
+			}
+			else {
+				customArpFactor = pow(2.0f, (float)arpDegree / 12.0f);
+			}
 		}
 
-		//const auto colorFactor = colorEnv.getManipulateAngle() + 1;
 		float totalPitchFactor = pitchBendFactor * pitchModulationFactor * sweepFactor * customArpFactor;
 		float modulatedDelta = angleDelta * totalPitchFactor;
 		auto currentSample = angle2wave(currentAngle, modulatedDelta, activeWaveIndex);
-		currentSample *= ampEnv.getValue() * level;
-
-		//エコー処理とエコーレンダリング 
+		currentSample *= ampEnv.getValue() * level * presetGain;
 		if (isEchoEnabled) {
-			eb.addSample(currentSample, _midiEchoParamsPtr->VolumeOffset->get() / 100.0f);
+			eb.addSample(currentSample, echoVolumeOffset / 100.0f);
 			eb.cycle();
 
 			for (auto channelNum = outputBuffer.getNumChannels(); --channelNum >= 0;) {
@@ -248,7 +277,6 @@ void SimpleVoice::renderNextBlock(AudioBuffer<float>& outputBuffer,
 				}
 			}
 		}
-		// バッファ書き込み
 		for (auto channelNum = outputBuffer.getNumChannels(); --channelNum >= 0;) {
 			outputBuffer.addSample(channelNum, startSample, currentSample);
 		}
@@ -256,7 +284,6 @@ void SimpleVoice::renderNextBlock(AudioBuffer<float>& outputBuffer,
 
 		currentAngle += modulatedDelta;
 
-		// ポルタメントをcurrentAngleに反映 
 		if (isPortaMode) {
 			if (portaAngleDelta > 0.0f) {
 				currentAngle -= (angleDelta - portaAngleDelta) * (1 - portaEnv.getValue());
@@ -273,27 +300,31 @@ void SimpleVoice::renderNextBlock(AudioBuffer<float>& outputBuffer,
 			pitchSweep -= 1 / (float)getSampleRate() / sweepTime;
 			pitchSweep = std::max(-10.0f, pitchSweep);
 		}
-
+		////////////////////////////
 		if (isPatternWaveEnabled) {
 			int actualEndStepIndex = -1;
-			for (int i = 0; i < WAVEPATTERN_LENGTH; i++) {
-				if (_wavePatternParams->isEndStep[i]) {
-					actualEndStepIndex = i;
-					break;
-				}
-			}
-			int waveLoopLength = WAVEPATTERN_LENGTH;
-			if (actualEndStepIndex >= 0) {
-				waveLoopLength = actualEndStepIndex + 1;
-			}
-			else {
+			int actualLoopStepIndex = 0;
 
-				for (int i = WAVEPATTERN_LENGTH - 1; i >= 0; i--) {
-					if (_wavePatternParams->WavePatternArray[i]->get() != 0) {
-						waveLoopLength = i + 1;
-						break;
-					}
+			for (int i = 0; i < WAVEPATTERN_LENGTH; i++) {
+				if (patternEndSteps[i]) {
+					actualEndStepIndex = i;
 				}
+				if (patternLoopSteps[i]) {
+					actualLoopStepIndex = i;
+				}
+			}
+
+			// if loop is placed after end, set to 0 just in case
+			if (actualEndStepIndex >= 0 && actualLoopStepIndex > actualEndStepIndex) {
+				actualLoopStepIndex = 0;
+			}
+
+			// check wavelooplength based on eithe rMAX length or the end step
+			int waveLoopLength = (actualEndStepIndex >= 0) ? (actualEndStepIndex + 1) : WAVEPATTERN_LENGTH;
+
+
+			if (patternIndex >= waveLoopLength) {
+				patternIndex = isPatternLoopEnabled ? actualLoopStepIndex : std::max(0, waveLoopLength - 1);
 			}
 
 			bool canAdvance = isPatternLoopEnabled || (patternIndex < waveLoopLength - 1);
@@ -302,11 +333,11 @@ void SimpleVoice::renderNextBlock(AudioBuffer<float>& outputBuffer,
 				patternCounter++;
 				if (patternCounter >= patternStepNum) {
 					patternCounter = 0;
-
 					patternIndex++;
+
 					if (patternIndex >= waveLoopLength) {
 						if (isPatternLoopEnabled) {
-							patternIndex = 0;
+							patternIndex = actualLoopStepIndex;
 						}
 						else {
 							patternIndex = waveLoopLength - 1;
@@ -318,9 +349,10 @@ void SimpleVoice::renderNextBlock(AudioBuffer<float>& outputBuffer,
 				patternIndex = std::max(0, waveLoopLength - 1);
 			}
 
-			int patternSlot = _wavePatternParams->WavePatternArray[std::max(0, std::min(patternIndex, WAVEPATTERN_LENGTH - 1))]->get();
+			const int patternStep = std::max(0, std::min(patternIndex, WAVEPATTERN_LENGTH - 1));
+			int patternSlot = pad ? pad->wavePattern[patternStep] : _wavePatternParams->WavePatternArray[patternStep]->get();
 			if (patternSlot >= 0 && patternSlot < WAVEPATTERN_TYPES) {
-				activeWaveIndex = _wavePatternParams->WaveTypes[patternSlot]->get();
+				activeWaveIndex = pad ? pad->patternWaveTypes[patternSlot] : _wavePatternParams->WaveTypes[patternSlot]->get();
 				currentWaveIndex = activeWaveIndex;
 			}
 		}
@@ -358,9 +390,7 @@ void SimpleVoice::patternWaveClear() {
 
 float SimpleVoice::calcModulationFactor(float angle) {
 	float factor = waveForms.sine(angle);
-
-	// factorの値が0.5を中心とした0.0～1.0の値となるように調整する。
-	factor *= _vibratoParamsPtr->VibratoAmount->get();
+	factor *= isDrumVoice ? drumPreset.vibratoAmount : _vibratoParamsPtr->VibratoAmount->get();
 	return factor;
 }
 
@@ -385,6 +415,10 @@ float SimpleVoice::angle2wave(float angle, float angleDelta, int waveIndex) {
 	default: break;
 	}
 	if (waveIndex >= 16) {
+		if (isDrumVoice) {
+			const int memoryIndex = waveIndex - 16;
+			return waveForms.waveformMemory(angle, drumPreset.waveSamples[memoryIndex < drumPreset.numWaveforms ? memoryIndex : 0]);
+		}
 		return waveForms.waveformMemory(angle, _waveformMemoryParamsPtr, waveIndex - 16);
 	}
 	return 0.0f;
@@ -399,12 +433,19 @@ bool SimpleVoice::canStartNote() {
 }
 
 void SimpleVoice::updateEnvParams(AmpEnvelope& ampEnv, AmpEnvelope& vibratoEnv, AmpEnvelope& portaEnv) {
-	ampEnv.setParameters(_chipOscParamsPtr->Attack->get(),
-		_chipOscParamsPtr->Decay->get(),
-		_chipOscParamsPtr->Sustain->get(),
-		_chipOscParamsPtr->Release->get(),
-		_midiEchoParamsPtr->EchoDuration->get() *
-		_midiEchoParamsPtr->EchoRepeat->get());
-	vibratoEnv.setParameters(_vibratoParamsPtr->VibratoAttackTime->get(), 0.1f, 1.0f, 0.1f, 0.0f);
+	if (isDrumVoice) {
+		ampEnv.setParameters(drumPreset.attack, drumPreset.decay, drumPreset.sustain, drumPreset.release,
+			drumPreset.echoDuration * drumPreset.echoRepeat);
+		vibratoEnv.setParameters(drumPreset.vibratoAttackTime, 0.1f, 1.0f, 0.1f, 0.0f);
+	}
+	else {
+		ampEnv.setParameters(_chipOscParamsPtr->Attack->get(),
+			_chipOscParamsPtr->Decay->get(),
+			_chipOscParamsPtr->Sustain->get(),
+			_chipOscParamsPtr->Release->get(),
+			_midiEchoParamsPtr->EchoDuration->get() *
+			_midiEchoParamsPtr->EchoRepeat->get());
+		vibratoEnv.setParameters(_vibratoParamsPtr->VibratoAttackTime->get(), 0.1f, 1.0f, 0.1f, 0.0f);
+	}
 	portaEnv.setParameters(_voicingParamsPtr->StepTime->get(), 0.0f, 1.0f, 0.0f, 0.0f);
 }
